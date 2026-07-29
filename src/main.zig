@@ -2,13 +2,24 @@ const std = @import("std");
 
 const stdin = std.Io.File.stdin();
 const print = std.debug.print;
+const allocater = std.heap.page_allocator;
+var path = std.ArrayList([]const u8){
+    .items = &.{},
+    .capacity = 0,
+};
+var commands = std.ArrayList([]const u8){
+    .items = &.{},
+    .capacity = 0,
+};
 
 pub fn main(init: std.process.Init) !void {
+
     var buffer: [256]u8 = undefined;
     var reader = stdin.reader(init.io, &buffer);
 
     print("Welcome To BCSH!\n", .{});
-
+    path = try getPath(init);
+    const index = try indexPath(init);
     while (true) {
         const input = try reader.interface.takeDelimiter('\n');
         if (input) |line| {
@@ -68,7 +79,18 @@ pub fn main(init: std.process.Init) !void {
             } else if (std.mem.eql(u8, line, "clear") or std.mem.eql(u8, line, "reset")) {
                 print("\x1b[2J\x1b[H", .{});
             } else {
-                print("Unknown Command: {s}\n", .{line});
+                var inputready = std.mem.splitScalar(u8, line, ' ');
+                const theinput = inputready.next() orelse continue;
+                const command = std.fs.path.basename(theinput);
+                var valid = false;
+                for (index.items) |thecommand| {
+                    if (std.mem.eql(u8, std.fs.path.basename(thecommand), command)) {
+                        valid = true;
+                        try runCommand(init, thecommand);
+                        break;
+                    }
+                }
+                if (!valid) print("Command not found\n", .{});
             }
         }
     }
@@ -169,4 +191,46 @@ fn mkdir(init: std.process.Init, folder: []const u8) !void {
         return;
     }
     try std.Io.Dir.cwd().createDir(init.io, folder, .default_dir);
+}
+
+fn getPath(init: std.process.Init) !std.ArrayListUnmanaged([]const u8) {
+    const temppath = init.environ_map.get("PATH") orelse "";
+
+    var dirs = std.ArrayList([]const u8){
+        .items = &.{},
+        .capacity = 0,
+    };
+
+    var iter = std.mem.splitScalar(u8, temppath, ':');
+
+    while (iter.next()) |dir| {
+        try dirs.append(allocater, dir);
+    }
+
+    return dirs;
+}
+
+fn indexPath(init: std.process.Init) !std.ArrayListUnmanaged([]const u8) {
+    var index = std.ArrayList([]const u8){
+        .items = &.{},
+        .capacity = 0,
+    };
+    for (path.items) |dir| {
+        var openedDir = try std.Io.Dir.cwd().openDir(init.io, dir, .{ .iterate = true });
+        defer openedDir.close(init.io);
+
+        var itered = openedDir.iterate();
+
+        while (try itered.next(init.io)) |entry| {
+            const command = try std.fs.path.join(allocater, &.{ dir, entry.name });
+
+            try index.append(allocater, command);
+        }
+    }
+    return index;
+}
+
+fn runCommand(init: std.process.Init, thepath: []const u8) !void {
+    var process = try std.process.spawn(init.io, .{ .argv = &.{thepath} });
+    _ = try process.wait(init.io);
 }
