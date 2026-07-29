@@ -1,5 +1,8 @@
 const std = @import("std");
 
+extern fn run(path: [*:0]const u8, args: [*]const ?[*:0]const u8) void;
+extern fn disableCtlC() void;
+
 const stdin = std.Io.File.stdin();
 const print = std.debug.print;
 const allocater = std.heap.page_allocator;
@@ -13,15 +16,17 @@ var commands = std.ArrayList([]const u8){
 };
 
 pub fn main(init: std.process.Init) !void {
+    disableCtlC();
 
     var buffer: [256]u8 = undefined;
     var reader = stdin.reader(init.io, &buffer);
 
+    print("\x1b[2J\x1b[H", .{});
     print("Welcome To BCSH!\n", .{});
     path = try getPath(init);
     const index = try indexPath(init);
     while (true) {
-        const input = try reader.interface.takeDelimiter('\n');
+        const input = reader.interface.takeDelimiter('\n') catch continue;
         if (input) |line| {
             if (std.mem.startsWith(u8, line, "ls")) {
                 var dir = std.mem.trim(u8, line[2..], " ");
@@ -86,7 +91,12 @@ pub fn main(init: std.process.Init) !void {
                 for (index.items) |thecommand| {
                     if (std.mem.eql(u8, std.fs.path.basename(thecommand), command)) {
                         valid = true;
-                        try runCommand(init, thecommand);
+                        var args = std.ArrayList([]const u8){
+                            .items = &.{},
+                            .capacity = 0,
+                        };
+                        while (inputready.next()) |arg| try args.append(allocater, arg);
+                        try runCommand(thecommand, args.items);
                         break;
                     }
                 }
@@ -230,7 +240,16 @@ fn indexPath(init: std.process.Init) !std.ArrayListUnmanaged([]const u8) {
     return index;
 }
 
-fn runCommand(init: std.process.Init, thepath: []const u8) !void {
-    var process = try std.process.spawn(init.io, .{ .argv = &.{thepath} });
-    _ = try process.wait(init.io);
+fn runCommand(thepath: []const u8, args: [][]const u8) !void {
+    var cArgs = try std.ArrayList(?[*:0]const u8).initCapacity(allocater, args.len + 2);
+    defer {
+        for (cArgs.items[1..]) |item| if (item) |p| allocater.free(std.mem.span(p));
+        cArgs.deinit(allocater);
+    }
+
+    cArgs.appendAssumeCapacity(try allocater.dupeSentinel(u8, thepath, 0));
+    for (args) |arg| cArgs.appendAssumeCapacity(try allocater.dupeSentinel(u8, arg, 0));
+    cArgs.appendAssumeCapacity(null);
+
+    run(cArgs.items[0].?, cArgs.items.ptr);
 }

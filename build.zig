@@ -80,6 +80,7 @@ pub fn build(b: *std.Build) void {
                 // importing modules from different packages).
                 .{ .name = "shell", .module = mod },
             },
+            .link_libc = true,
         }),
     });
 
@@ -87,6 +88,10 @@ pub fn build(b: *std.Build) void {
     // install prefix when running `zig build` (i.e. when executing the default
     // step). By default the install prefix is `zig-out/` but can be overridden
     // by passing `--prefix` or `-p`.
+
+    exe.root_module.addCSourceFile(.{ .file = b.path("src/main.c"), .flags = &.{} });
+    exe.use_llvm = false;
+
     b.installArtifact(exe);
 
     // This creates a top level step. Top level steps have a name and can be
@@ -111,9 +116,7 @@ pub fn build(b: *std.Build) void {
 
     // This allows the user to pass arguments to the application in the build
     // command itself, like this: `zig build run -- arg1 arg2 etc`
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
+    run_cmd.addPassthruArgs();
 
     // Creates an executable that will run `test` blocks from the provided module.
     // Here `mod` needs to define a target, which is why earlier we made sure to
