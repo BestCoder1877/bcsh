@@ -4,7 +4,7 @@ set -e
 
 NAME="bcsh"
 INSTALL="/bin/$NAME"
-URL=""
+URL="https://gitlab.com/bestCoder1877/bcsh/-/blob/master/bcsh"
 
 if [ -n "$BCSH_DEV_MODE" ]; then
 	cp zig-out/bin/shell $NAME
