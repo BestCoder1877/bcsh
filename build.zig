@@ -11,7 +11,13 @@ pub fn build(b: *std.Build) void {
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
     // for restricting supported target set are available.
-    const target = b.standardTargetOptions(.{});
+    const target = b.standardTargetOptions(.{
+        .default_target = .{
+            .cpu_arch = .x86_64,
+            .os_tag = .linux,
+            .abi = .musl,
+        },
+    });
     // Standard optimization options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
     // set a preferred release mode, allowing the user to decide how to optimize.
@@ -90,7 +96,7 @@ pub fn build(b: *std.Build) void {
     // by passing `--prefix` or `-p`.
 
     exe.root_module.addCSourceFile(.{ .file = b.path("src/main.c"), .flags = &.{} });
-    exe.use_llvm = false;
+    exe.use_llvm = true;
 
     b.installArtifact(exe);
 
@@ -116,7 +122,6 @@ pub fn build(b: *std.Build) void {
 
     // This allows the user to pass arguments to the application in the build
     // command itself, like this: `zig build run -- arg1 arg2 etc`
-    run_cmd.addPassthruArgs();
 
     // Creates an executable that will run `test` blocks from the provided module.
     // Here `mod` needs to define a target, which is why earlier we made sure to

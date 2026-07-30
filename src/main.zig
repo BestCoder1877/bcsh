@@ -26,6 +26,7 @@ pub fn main(init: std.process.Init) !void {
     path = try getPath(init);
     const index = try indexPath(init);
     while (true) {
+        print("BCSH> ", .{});
         const input = reader.interface.takeDelimiter('\n') catch continue;
         if (input) |line| {
             if (std.mem.startsWith(u8, line, "ls")) {
@@ -40,6 +41,15 @@ pub fn main(init: std.process.Init) !void {
                         if (dir.len != 0) {
                             try ls(init, thedir);
                         }
+                    }
+                }
+            } else if (std.mem.startsWith(u8, line, "rmdir")) {
+                const file = std.mem.trim(u8, line[5..], " ");
+
+                var iter = std.mem.splitScalar(u8, file, ' ');
+                while (iter.next()) |thefile| {
+                    if (thefile.len != 0) {
+                        rmdir(init, thefile);
                     }
                 }
             } else if (std.mem.startsWith(u8, line, "cat")) {
@@ -77,6 +87,15 @@ pub fn main(init: std.process.Init) !void {
                 while (iter.next()) |thefolder| {
                     if (thefolder.len != 0) {
                         try mkdir(init, thefolder);
+                    }
+                }
+            } else if (std.mem.startsWith(u8, line, "cd")) {
+                const folder = std.mem.trim(u8, line[2..], " ");
+
+                var iter = std.mem.splitScalar(u8, folder, ' ');
+                while (iter.next()) |thefolder| {
+                    if (thefolder.len != 0) {
+                        try cd(init, thefolder);
                     }
                 }
             } else if (std.mem.eql(u8, line, "exit")) {
@@ -163,12 +182,12 @@ fn rm(init: std.process.Init, file: []const u8) void {
 }
 
 fn rmdir(init: std.process.Init, folder: []const u8) void {
-    if (std.Io.Dir.cwd().openFile(init.io, folder, .{}) catch null) |file| {
-        file.close(init.io);
+    var dir = std.Io.Dir.cwd().openDir(init.io, folder, .{}) catch {
         print("Use rm to delete a file\n", .{});
         return;
-    }
-    std.Io.Dir.cwd().deleteDir(init.io, folder) catch {
+    };
+    dir.close(init.io);
+    std.Io.Dir.cwd().deleteTree(init.io, folder) catch {
         print("No such file or directory\n", .{});
         return;
     };
@@ -203,6 +222,18 @@ fn mkdir(init: std.process.Init, folder: []const u8) !void {
     try std.Io.Dir.cwd().createDir(init.io, folder, .default_dir);
 }
 
+fn cd(init: std.process.Init, folder: []const u8) !void {
+    const targetfolder = if (std.mem.eql(u8, folder, "~")) init.environ_map.get("HOME") orelse "/root" else folder;
+
+    const dir = std.Io.Dir.cwd().openDir(init.io, targetfolder, .{}) catch {
+        print("No such file or directory\n", .{});
+        return;
+    };
+    defer dir.close(init.io);
+
+    try std.process.setCurrentDir(init.io, dir);
+}
+
 fn getPath(init: std.process.Init) !std.ArrayListUnmanaged([]const u8) {
     const temppath = init.environ_map.get("PATH") orelse "";
 
@@ -226,7 +257,7 @@ fn indexPath(init: std.process.Init) !std.ArrayListUnmanaged([]const u8) {
         .capacity = 0,
     };
     for (path.items) |dir| {
-        var openedDir = try std.Io.Dir.cwd().openDir(init.io, dir, .{ .iterate = true });
+        var openedDir = std.Io.Dir.cwd().openDir(init.io, dir, .{ .iterate = true }) catch continue;
         defer openedDir.close(init.io);
 
         var itered = openedDir.iterate();
