@@ -1,10 +1,11 @@
-#!/bin/bash
-
+#!/bin/sh
 set -e
 
-dir=$(pwd)
+rm -rf output
+mkdir output
 
-zig build
+docker build -t bcsh .
 
-docker build -t bcsh-test .
-docker run --rm -it bcsh-test su - code
+docker run --rm -it \
+    -v "$(pwd)/output:/export" \
+    bcsh

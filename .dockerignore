@@ -1,5 +1,10 @@
 *
 
 !Dockerfile
-!zig-out
 !install.sh
+!bcsh
+!output
+!build.sh
+!CMakeLists.txt
+!src
+!entrypoint.sh
