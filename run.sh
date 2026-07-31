@@ -1,11 +1,12 @@
 #!/bin/sh
 set -e
 
-rm -rf output
-mkdir output
-
-docker build -t bcsh .
-
-docker run --rm -it \
-    -v "$(pwd)/output:/export" \
-    bcsh
+cmake -S . -B build-x86_64 \
+    -DCMAKE_C_COMPILER=gcc \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_C_FLAGS="-O2 -static"
+cmake --build build-x86_64
+cp build-x86_64/bcsh output/bcsh-x86_64
+chmod +x ./build-x86_64/bcsh
+./build-x86_64/bcsh
+rm -rf ./build-x86_64

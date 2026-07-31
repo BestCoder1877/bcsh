@@ -1,0 +1,74 @@
+stages:
+  - build
+  - release
+
+variables:
+  DOCKER_DRIVER: overlay2
+
+build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - rm -rf output && mkdir output
+    - docker build -t bcsh .
+    - docker run --rm -v "$(pwd)/output:/export" bcsh
+  artifacts:
+    paths:
+      - output/
+
+auto_release:
+  stage: release
+  image: alpine:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  before_script:
+    - apk add --no-cache git
+  script:
+    - TAG="v$(date +%Y.%m.%d-%H%M%S)"
+    - echo "TAG=$TAG" >> build.env
+    - git config user.name "Bot" && git config user.email "bot@gitlab.com"
+    - git tag $TAG
+    - git push https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git $TAG
+  artifacts:
+    reports:
+      dotenv: build.env
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: auto_release
+      artifacts: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  script:
+    - echo "Releasing $TAG"
+  release:
+    tag_name: '$TAG'
+    description: 'Release $TAG'
+    assets:
+      links:
+        - name: "bcsh-x86_64"
+          url: "${CI_PROJECT_URL/-/releases}/permalink/latest/downloads/output/bcsh-x86_64"
+        - name: "bcsh-arm64"
+          url: "${CI_PROJECT_URL/-/releases}/permalink/latest/downloads/output/bcsh-arm64"
+        - name: "bcsh-armhf"
+          url: "${CI_PROJECT_URL/-/releases}/permalink/latest/downloads/output/bcsh-armhf"
+        - name: "bcsh-armel"
+          url: "${CI_PROJECT_URL/-/releases}/permalink/latest/downloads/output/bcsh-armel"
+        - name: "bcsh-i386"
+          url: "${CI_PROJECT_URL/-/releases}/permalink/latest/downloads/output/bcsh-i386"
+        - name: "bcsh-mips"
+          url: "${CI_PROJECT_URL/-/releases}/permalink/latest/downloads/output/bcsh-mips"
+        - name: "bcsh-mipsel"
+          url: "${CI_PROJECT_URL/-/releases}/permalink/latest/downloads/output/bcsh-mipsel"
+        - name: "bcsh-ppc64"
+          url: "${CI_PROJECT_URL/-/releases}/permalink/latest/downloads/output/bcsh-ppc64"
+        - name: "bcsh-ppc64le"
+          url: "${CI_PROJECT_URL/-/releases}/permalink/latest/downloads/output/bcsh-ppc64le"
+        - name: "bcsh-riscv64"
+          url: "${CI_PROJECT_URL/-/releases}/permalink/latest/downloads/output/bcsh-riscv64"
+        - name: "bcsh-s390x"
+          url: "${CI_PROJECT_URL/-/releases}/permalink/latest/downloads/output/bcsh-s390x"

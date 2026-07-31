@@ -46,7 +46,7 @@ case "$ARCH" in
         ;;
 esac
 
-URL="https://gitlab.com/bestCoder1877/bcsh/-/raw/master/output/$BINARY"
+URL="https://gitlab.com/bestCoder1877/bcsh/-/releases/permalink/latest/downloads/output/$BINARY"
 
 curl -L "$URL" -o bcsh
 chmod +x bcsh
