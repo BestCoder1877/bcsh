@@ -12,6 +12,7 @@ build:
     - docker:dind
   script:
     - rm -rf output && mkdir output
+    - chmod 777 output
     - docker build -t bcsh .
     - docker run --rm -v "$(pwd)/output:/export" bcsh
   artifacts:
