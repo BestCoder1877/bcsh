@@ -37,7 +37,7 @@ auto_release:
     - TAG="v$(date +%Y.%m.%d-%H%M%S)"
     - echo "TAG=$TAG" >> build.env
     - git config user.name "Bot" && git config user.email "bot@gitlab.com"
-    - git remote set-url origin https://oauth2:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
+    - git remote set-url origin https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
     - git tag $TAG
     - git push origin $TAG
   artifacts:
