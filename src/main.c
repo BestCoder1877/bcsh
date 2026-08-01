@@ -475,18 +475,32 @@ int main() {
         char *thecommand = strrchr(index[i], '/');
         if (thecommand != NULL)
           thecommand++;
-        else
-          thecommand = index[i];
         if (strcmp(thecommand, command) == 0) {
           valid = 1;
-          char **args = NULL;
+          char **args = malloc(sizeof(char *) * 1);
           int argsCount = 0;
+
+          args[argsCount++] = command;
 
           char *arg;
           while ((arg = strtok(NULL, " ")) != NULL) {
-            args = realloc(args, (argsCount + 1) * sizeof(char *));
-            args[argsCount] = arg;
-            argsCount++;
+            if (arg[0] == '"') {
+              arg++;
+
+              char *next = strtok(NULL, "\"");
+              if (next != NULL) {
+                args = realloc(args, (argsCount + 1) * sizeof(char *));
+                args[argsCount] = malloc(strlen(arg) + strlen(next) + 2);
+                strcpy(args[argsCount], arg);
+                strcat(args[argsCount], " ");
+                strcat(args[argsCount], next);
+                argsCount++;
+              }
+            } else {
+              args = realloc(args, (argsCount + 1) * sizeof(char *));
+              args[argsCount] = arg;
+              argsCount++;
+            }
           }
 
           args = realloc(args, (argsCount + 1) * sizeof(char *));
