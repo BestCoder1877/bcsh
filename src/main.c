@@ -131,26 +131,6 @@ void cd(char *dir) {
   }
 }
 
-void disableCtlC() {
-  signal(SIGINT, SIG_IGN);
-  signal(SIGTTOU, SIG_IGN);
-
-  struct termios term;
-  tcgetattr(STDIN_FILENO, &term);
-  term.c_lflag &= ~ISIG;
-  tcsetattr(STDIN_FILENO, TCSANOW, &term);
-}
-
-void enableCtlC() {
-  signal(SIGINT, SIG_DFL);
-  signal(SIGTTOU, SIG_DFL);
-
-  struct termios term;
-  tcgetattr(STDIN_FILENO, &term);
-  term.c_lflag |= ISIG;
-  tcsetattr(STDIN_FILENO, TCSANOW, &term);
-}
-
 void enableRaw() {
   struct termios term;
   tcgetattr(STDIN_FILENO, &term);
@@ -164,7 +144,6 @@ void enableRaw() {
   term.c_lflag &= ~ECHO;
   term.c_lflag &= ~ICANON;
   term.c_lflag &= ~IEXTEN;
-  term.c_lflag &= ~ISIG;
   term.c_cc[VMIN] = 1;
   term.c_cc[VTIME] = 0;
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &term);
@@ -178,7 +157,7 @@ void run(char *path, char *args[]) {
     setpgid(child_pid, child_pid);
     tcsetpgrp(STDIN_FILENO, child_pid);
 
-    enableCtlC();
+    signal(SIGINT, SIG_DFL);
 
     struct termios term;
     tcgetattr(STDIN_FILENO, &term);
@@ -198,27 +177,27 @@ void run(char *path, char *args[]) {
 
     tcsetpgrp(STDIN_FILENO, getpgrp());
 
-    disableCtlC();
     enableRaw();
   }
 }
 
-char *handleInput() {
+char *handleInput(char **history, int historyCount) {
   char buffer[1];
 
   char *chars = NULL;
   int len = 0;
+  int historyPos = historyCount;
 
   while (1) {
     int bytes = read(0, buffer, 1);
     if (bytes == 0) {
-        free(chars);
-        return NULL;
+      free(chars);
+      return NULL;
     }
     if (bytes < 0) {
-        perror("read");
-        free(chars);
-        return NULL;
+      perror("read");
+      free(chars);
+      return NULL;
     }
     if (buffer[0] == '\r' || buffer[0] == '\n') {
       write(1, "\r\n", 2);
@@ -244,6 +223,36 @@ char *handleInput() {
           len < (int)strlen(chars)) {
         write(1, "\x1b[1C", 4);
         len++;
+      }
+      if (seq[0] == '[' && seq[1] == 'A') {
+        if (historyPos > 0) {
+          while (len > 0) {
+            write(1, "\b \b", 3);
+            len--;
+          }
+          historyPos--;
+          free(chars);
+          chars = strdup(history[historyPos]);
+          len = strlen(chars);
+          write(1, chars, len);
+        }
+      }
+      if (seq[0] == '[' && seq[1] == 'B') { // DOWN arrow
+        while (len > 0) {
+          write(1, "\b \b", 3);
+          len--;
+        }
+        if (historyPos < historyCount - 1) {
+          historyPos++;
+          free(chars);
+          chars = strdup(history[historyPos]);
+          len = strlen(chars);
+          write(1, chars, len);
+        } else {
+          historyPos = historyCount;
+          free(chars);
+          chars = NULL;
+        }
       }
       continue;
     }
@@ -277,7 +286,7 @@ char **getPath() {
 
     iter = strtok(NULL, ":");
   }
-	free(path);
+  free(path);
   return dirs;
 }
 
@@ -311,11 +320,13 @@ char **indexPath(char **path) {
 }
 
 int main() {
-  disableCtlC();
+  signal(SIGINT, SIG_IGN);
+  signal(SIGTTOU, SIG_IGN);
   enableRaw();
 
   char **path = getPath();
-
+  char **history = NULL;
+  int historyCount = 0;
   char **index = indexPath(path);
 
   int indexCount = 0;
@@ -330,8 +341,14 @@ int main() {
     printf("BCSH> ");
     fflush(stdout);
 
-    char *input = handleInput();
+    char *input = handleInput(history, historyCount);
     printf("\r\n");
+
+    if (strlen(input) > 0) {
+      history = realloc(history, (historyCount + 1) * sizeof(char *));
+      history[historyCount] = strdup(input);
+      historyCount++;
+    }
 
     if (strcmp(input, "exit") == 0) {
       free(input);
