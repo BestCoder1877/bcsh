@@ -40,6 +40,3 @@ RUN useradd -m -s /bin/bcsh code \
 WORKDIR /home/code
 
 USER code
-
-COPY entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
