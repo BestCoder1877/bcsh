@@ -34,7 +34,14 @@ void ls(char *dir) {
     printf("No such file or directory\r\n");
   }
 }
-
+void pwd() {
+  char cwd[1024];
+  if (getcwd(cwd, sizeof(cwd)) != NULL) {
+    printf("%s\r\n", cwd);
+  } else {
+    printf("Current directory does not exist");
+  }
+}
 void cat(char *file) {
   DIR *directory = opendir(file);
   if (directory != NULL) {
@@ -268,34 +275,11 @@ char *handleInput(char **history, int historyCount) {
   return chars;
 }
 
-char **getPath() {
-  char *path = strdup(getenv("PATH"));
-
-  char **dirs = malloc(0 * sizeof(char *));
-  int dirCount = 0;
-
-  char *iter = strtok(path, ":");
-
-  while (iter != NULL) {
-    char *dir = iter;
-
-    dirs = realloc(dirs, (dirCount + 2) * sizeof(char *));
-    dirs[dirCount] = strdup(dir);
-    dirCount++;
-    dirs[dirCount] = NULL;
-
-    iter = strtok(NULL, ":");
-  }
-  free(path);
-  return dirs;
-}
-
 int main() {
   signal(SIGINT, SIG_IGN);
   signal(SIGTTOU, SIG_IGN);
   enableRaw();
 
-  char **path = getPath();
   char **history = NULL;
   int historyCount = 0;
 
@@ -421,45 +405,54 @@ int main() {
           iter = strtok(NULL, " ");
         }
       }
-    } else if ((strcmp(input, "clear") == 0) || (strcmp(input, "reset") == 0)) {
-      printf("\x1b[2J\x1b[H");
-    } else {
-      char *inputready = strtok(input, " ");
-      if (inputready == NULL)
-        continue;
+    } else if ((input[0] == 'p' && input[1] == 'w' && input[2] == 'd' &&
+                (input[3] == ' ' || input[3] == '\0'))) {
+      char *dir = input + 3;
 
-      char **args = malloc(sizeof(char *) * 1);
-      int argsCount = 0;
+      pwd();
+      printf("\r\n");
+    }
+else if ((strcmp(input, "clear") == 0) || (strcmp(input, "reset") == 0)) {
+  printf("\x1b[2J\x1b[H");
+}
+else {
+  char *inputready = strtok(input, " ");
+  if (inputready == NULL)
+    continue;
 
-      args[argsCount++] = inputready;
+  char **args = malloc(sizeof(char *) * 1);
+  int argsCount = 0;
 
-      char *arg;
-      while ((arg = strtok(NULL, " ")) != NULL) {
-        if (arg[0] == '"') {
-          arg++;
+  args[argsCount++] = inputready;
 
-          char *next = strtok(NULL, "\"");
-          if (next != NULL) {
-            args = realloc(args, (argsCount + 1) * sizeof(char *));
-            args[argsCount] = malloc(strlen(arg) + strlen(next) + 2);
-            strcpy(args[argsCount], arg);
-            strcat(args[argsCount], " ");
-            strcat(args[argsCount], next);
-            argsCount++;
-          }
-        } else {
-          args = realloc(args, (argsCount + 1) * sizeof(char *));
-          args[argsCount] = arg;
-          argsCount++;
-        }
+  char *arg;
+  while ((arg = strtok(NULL, " ")) != NULL) {
+    if (arg[0] == '"') {
+      arg++;
+
+      char *next = strtok(NULL, "\"");
+      if (next != NULL) {
+        args = realloc(args, (argsCount + 1) * sizeof(char *));
+        args[argsCount] = malloc(strlen(arg) + strlen(next) + 2);
+        strcpy(args[argsCount], arg);
+        strcat(args[argsCount], " ");
+        strcat(args[argsCount], next);
+        argsCount++;
       }
-
+    } else {
       args = realloc(args, (argsCount + 1) * sizeof(char *));
-      args[argsCount] = NULL;
-      run(args);
-      free(args);
-
-      free(input);
+      args[argsCount] = arg;
+      argsCount++;
     }
   }
+
+  args = realloc(args, (argsCount + 1) * sizeof(char *));
+  args[argsCount] = NULL;
+  run(args);
+  printf("\r\n");
+  free(args);
+
+  free(input);
+}
+}
 }
