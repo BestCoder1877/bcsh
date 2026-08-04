@@ -48,7 +48,7 @@ esac
 
 URL="https://gitlab.com/bestCoder1877/bcsh/-/releases/permalink/latest/downloads/output/$BINARY"
 
-curl -L "$URL" -o bcsh
+curl -L --location-trusted "$URL" -o bcsh
 chmod +x bcsh
 
 if [ -z "$BCSH_DEV_MODE" ]; then

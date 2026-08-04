@@ -411,48 +411,46 @@ int main() {
 
       pwd();
       printf("\r\n");
-    }
-else if ((strcmp(input, "clear") == 0) || (strcmp(input, "reset") == 0)) {
-  printf("\x1b[2J\x1b[H");
-}
-else {
-  char *inputready = strtok(input, " ");
-  if (inputready == NULL)
-    continue;
-
-  char **args = malloc(sizeof(char *) * 1);
-  int argsCount = 0;
-
-  args[argsCount++] = inputready;
-
-  char *arg;
-  while ((arg = strtok(NULL, " ")) != NULL) {
-    if (arg[0] == '"') {
-      arg++;
-
-      char *next = strtok(NULL, "\"");
-      if (next != NULL) {
-        args = realloc(args, (argsCount + 1) * sizeof(char *));
-        args[argsCount] = malloc(strlen(arg) + strlen(next) + 2);
-        strcpy(args[argsCount], arg);
-        strcat(args[argsCount], " ");
-        strcat(args[argsCount], next);
-        argsCount++;
-      }
+    } else if ((strcmp(input, "clear") == 0) || (strcmp(input, "reset") == 0)) {
+      printf("\x1b[2J\x1b[H");
     } else {
+      char *inputready = strtok(input, " ");
+      if (inputready == NULL)
+        continue;
+
+      char **args = malloc(sizeof(char *) * 1);
+      int argsCount = 0;
+
+      args[argsCount++] = inputready;
+
+      char *arg;
+      while ((arg = strtok(NULL, " ")) != NULL) {
+        if (arg[0] == '"') {
+          arg++;
+
+          char *next = strtok(NULL, "\"");
+          if (next != NULL) {
+            args = realloc(args, (argsCount + 1) * sizeof(char *));
+            args[argsCount] = malloc(strlen(arg) + strlen(next) + 2);
+            strcpy(args[argsCount], arg);
+            strcat(args[argsCount], " ");
+            strcat(args[argsCount], next);
+            argsCount++;
+          }
+        } else {
+          args = realloc(args, (argsCount + 1) * sizeof(char *));
+          args[argsCount] = arg;
+          argsCount++;
+        }
+      }
+
       args = realloc(args, (argsCount + 1) * sizeof(char *));
-      args[argsCount] = arg;
-      argsCount++;
+      args[argsCount] = NULL;
+      run(args);
+      printf("\r\n");
+      free(args);
+
+      free(input);
     }
   }
-
-  args = realloc(args, (argsCount + 1) * sizeof(char *));
-  args[argsCount] = NULL;
-  run(args);
-  printf("\r\n");
-  free(args);
-
-  free(input);
-}
-}
 }
