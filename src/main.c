@@ -149,7 +149,7 @@ void enableRaw() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &term);
 }
 
-void run(char *path, char *args[]) {
+void run(char *args[]) {
   pid_t process = fork();
 
   if (process == 0) {
@@ -166,7 +166,7 @@ void run(char *path, char *args[]) {
     term.c_oflag |= OPOST;
     tcsetattr(STDIN_FILENO, TCSANOW, &term);
 
-    execvp(path, args);
+    execvp(args[0], args);
     _exit(1);
   } else {
     setpgid(process, process);
@@ -290,35 +290,6 @@ char **getPath() {
   return dirs;
 }
 
-char **indexPath(char **path) {
-  char **index = malloc(0 * sizeof(char *));
-  int indexCount = 0;
-
-  for (int i = 0; path[i] != NULL; i++) {
-    char *dir = path[i];
-
-    DIR *openedDir = opendir(dir);
-    if (openedDir == NULL)
-      continue;
-
-    struct dirent *entry;
-
-    while ((entry = readdir(openedDir)) != NULL) {
-      index = realloc(index, (indexCount + 2) * sizeof(char *));
-
-      char fullpath[1024];
-      snprintf(fullpath, sizeof(fullpath), "%s/%s", dir, entry->d_name);
-      index[indexCount] = strdup(fullpath);
-
-      indexCount++;
-      index[indexCount] = NULL;
-    }
-
-    closedir(openedDir);
-  }
-  return index;
-}
-
 int main() {
   signal(SIGINT, SIG_IGN);
   signal(SIGTTOU, SIG_IGN);
@@ -327,12 +298,6 @@ int main() {
   char **path = getPath();
   char **history = NULL;
   int historyCount = 0;
-  char **index = indexPath(path);
-
-  int indexCount = 0;
-  while (index[indexCount] != NULL) {
-    indexCount++;
-  }
 
   printf("\x1b[2J\x1b[H");
   printf("Welcome To BCSH!\r\n");
@@ -463,55 +428,36 @@ int main() {
       if (inputready == NULL)
         continue;
 
-      char *theinput = inputready;
-      char *command = strrchr(theinput, '/');
-      if (command != NULL)
-        command++;
-      else
-        command = theinput;
+      char **args = malloc(sizeof(char *) * 1);
+      int argsCount = 0;
 
-      int valid = 0;
-      for (int i = 0; i < indexCount; i++) {
-        char *thecommand = strrchr(index[i], '/');
-        if (thecommand != NULL)
-          thecommand++;
-        if (strcmp(thecommand, command) == 0) {
-          valid = 1;
-          char **args = malloc(sizeof(char *) * 1);
-          int argsCount = 0;
+      args[argsCount++] = inputready;
 
-          args[argsCount++] = command;
+      char *arg;
+      while ((arg = strtok(NULL, " ")) != NULL) {
+        if (arg[0] == '"') {
+          arg++;
 
-          char *arg;
-          while ((arg = strtok(NULL, " ")) != NULL) {
-            if (arg[0] == '"') {
-              arg++;
-
-              char *next = strtok(NULL, "\"");
-              if (next != NULL) {
-                args = realloc(args, (argsCount + 1) * sizeof(char *));
-                args[argsCount] = malloc(strlen(arg) + strlen(next) + 2);
-                strcpy(args[argsCount], arg);
-                strcat(args[argsCount], " ");
-                strcat(args[argsCount], next);
-                argsCount++;
-              }
-            } else {
-              args = realloc(args, (argsCount + 1) * sizeof(char *));
-              args[argsCount] = arg;
-              argsCount++;
-            }
+          char *next = strtok(NULL, "\"");
+          if (next != NULL) {
+            args = realloc(args, (argsCount + 1) * sizeof(char *));
+            args[argsCount] = malloc(strlen(arg) + strlen(next) + 2);
+            strcpy(args[argsCount], arg);
+            strcat(args[argsCount], " ");
+            strcat(args[argsCount], next);
+            argsCount++;
           }
-
+        } else {
           args = realloc(args, (argsCount + 1) * sizeof(char *));
-          args[argsCount] = NULL;
-          run(index[i], args);
-          free(args);
-          break;
+          args[argsCount] = arg;
+          argsCount++;
         }
       }
-      if (!valid)
-        printf("Command not found\r\n");
+
+      args = realloc(args, (argsCount + 1) * sizeof(char *));
+      args[argsCount] = NULL;
+      run(args);
+      free(args);
 
       free(input);
     }
