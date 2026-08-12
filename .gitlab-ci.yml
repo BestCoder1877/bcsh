@@ -34,4 +34,4 @@ release:
 
   script:
     - TAG="v$(date +%Y.%m.%d-%H%M%S)"
-    - glab release create "$TAG" output/bcsh-* --name "$TAG" --notes "Release $TAG" --ref "$CI_COMMIT_SHA"
+    - glab release create "$TAG" output/bcsh-* --name "$TAG" --notes "Release $TAG" --ref "$CI_COMMIT_SHA" --use-package-registry
