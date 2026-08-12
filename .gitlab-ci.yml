@@ -8,20 +8,7 @@ build:
 
   before_script:
     - apt-get update
-    - apt-get install -y
-        cmake
-        make
-        gcc
-        gcc-i686-linux-gnu
-        gcc-aarch64-linux-gnu
-        gcc-arm-linux-gnueabihf
-        gcc-arm-linux-gnueabi
-        gcc-riscv64-linux-gnu
-        gcc-mips-linux-gnu
-        gcc-mipsel-linux-gnu
-        gcc-powerpc64-linux-gnu
-        gcc-powerpc64le-linux-gnu
-        gcc-s390x-linux-gnu
+    - apt-get install -y cmake make gcc gcc-i686-linux-gnu gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf gcc-arm-linux-gnueabi gcc-riscv64-linux-gnu gcc-mips-linux-gnu gcc-mipsel-linux-gnu gcc-powerpc64-linux-gnu gcc-powerpc64le-linux-gnu gcc-s390x-linux-gnu
     - chmod +x build.sh
 
   script:
@@ -33,7 +20,7 @@ build:
 
 release:
   stage: release
-  image: registry.gitlab.com/gitlab-org/cli:latest
+  image: debian:trixie
 
   needs:
     - job: build
@@ -42,11 +29,18 @@ release:
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
-  variables:
-    GLAB_ENABLE_CI_AUTOLOGIN: "true"
+  before_script:
+    - apt-get update
+    - apt-get install -y curl git
+    - curl --fail --location https://gitlab.com/gitlab-org/cli/-/releases/v1.58.0/downloads/glab_1.58.0_Linux_x86_64.tar.gz -o glab.tar.gz
+    - tar -xzf glab.tar.gz
+    - install -m 755 bin/glab /usr/local/bin/glab
 
   script:
     - TAG="v$(date +%Y.%m.%d-%H%M%S)"
+    - git config user.name "Bot"
+    - git config user.email "bot@gitlab.com"
+    - git remote set-url origin "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
     - git tag "$TAG"
     - git push origin "$TAG"
     - glab release create "$TAG" output/bcsh-* --name "$TAG" --notes "Release $TAG"
