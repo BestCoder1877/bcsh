@@ -2,120 +2,51 @@ stages:
   - build
   - release
 
-variables:
-  DOCKER_DRIVER: overlay2
-  DOCKER_HOST: tcp://docker:2375
-  DOCKER_TLS_CERTDIR: ""
-
 build:
   stage: build
-  image: docker:latest
-  services:
-    - name: docker:dind
-      command: ["--tls=false"]
+  image: debian:trixie
+
+  before_script:
+    - apt-get update
+    - apt-get install -y
+        cmake
+        make
+        gcc
+        gcc-i686-linux-gnu
+        gcc-aarch64-linux-gnu
+        gcc-arm-linux-gnueabihf
+        gcc-arm-linux-gnueabi
+        gcc-riscv64-linux-gnu
+        gcc-mips-linux-gnu
+        gcc-mipsel-linux-gnu
+        gcc-powerpc64-linux-gnu
+        gcc-powerpc64le-linux-gnu
+        gcc-s390x-linux-gnu
+    - chmod +x build.sh
 
   script:
-    - rm -rf output
-    - mkdir -p output
-    - chmod 777 output
-    - docker info
-    - docker build -t bcsh .
-    - docker run --rm -v "$(pwd)/output:/export" bcsh cp -r /app/output/. /export/
+    - ./build.sh
 
   artifacts:
     paths:
       - output/
-    expire_in: 1 week
-
-auto_release:
-  stage: release
-  image: alpine:latest
-
-  rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-
-  before_script:
-    - apk add --no-cache git
-
-  script:
-    - TAG="v$(date +%Y.%m.%d-%H%M%S)"
-    - git config user.name "Bot"
-    - git config user.email "bot@gitlab.com"
-    - git remote set-url origin "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
-    - git tag "$TAG"
-    - git push origin "$TAG"
-
-  artifacts:
-    reports:
-      dotenv: build.env
 
 release:
   stage: release
-  image: curlimages/curl:latest
+  image: registry.gitlab.com/gitlab-org/cli:latest
 
   needs:
-    - job: auto_release
-      artifacts: true
     - job: build
       artifacts: true
 
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+  variables:
+    GLAB_ENABLE_CI_AUTOLOGIN: "true"
+
   script:
-    - |
-      for file in output/bcsh-*; do
-        filename="${file##*/}"
-        curl --fail --show-error \
-          --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
-          --upload-file "$file" \
-          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/bcsh/${TAG}/${filename}"
-      done
-  release:
-    tag_name: "$TAG"
-    description: "Release $TAG"
-    assets:
-      links:
-        - name: "bcsh-x86_64"
-          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/bcsh/${TAG}/bcsh-x86_64"
-          filepath: "/downloads/output/bcsh-x86_64"
-          link_type: "package"
-        - name: "bcsh-arm64"
-          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/bcsh/${TAG}/bcsh-arm64"
-          filepath: "/downloads/output/bcsh-arm64"
-          link_type: "package"
-        - name: "bcsh-armhf"
-          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/bcsh/${TAG}/bcsh-armhf"
-          filepath: "/downloads/output/bcsh-armhf"
-          link_type: "package"
-        - name: "bcsh-armel"
-          url: "${CI_API_V4_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/bcsh/${TAG}/bcsh-armel"
-          filepath: "/downloads/output/bcsh-armel"
-          link_type: "package"
-        - name: "bcsh-i386"
-          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/bcsh/${TAG}/bcsh-i386"
-          filepath: "/downloads/output/bcsh-i386"
-          link_type: "package"
-        - name: "bcsh-mips"
-          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/bcsh/${TAG}/bcsh-mips"
-          filepath: "/downloads/output/bcsh-mips"
-          link_type: "package"
-        - name: "bcsh-mipsel"
-          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/bcsh/${TAG}/bcsh-mipsel"
-          filepath: "/downloads/output/bcsh-mipsel"
-          link_type: "package"
-        - name: "bcsh-ppc64"
-          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/bcsh/${TAG}/bcsh-ppc64"
-          filepath: "/downloads/output/bcsh-ppc64"
-          link_type: "package"
-        - name: "bcsh-ppc64le"
-          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/bcsh/${TAG}/bcsh-ppc64le"
-          filepath: "/downloads/output/bcsh-ppc64le"
-          link_type: "package"
-        - name: "bcsh-riscv64"
-          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/bcsh/${TAG}/bcsh-riscv64"
-          filepath: "/downloads/output/bcsh-riscv64"
-          link_type: "package"
-        - name: "bcsh-s390x"
-          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/bcsh/${TAG}/bcsh-s390x"
-          filepath: "/downloads/output/bcsh-s390x"
-          link_type: "package"
+    - TAG="v$(date +%Y.%m.%d-%H%M%S)"
+    - git tag "$TAG"
+    - git push origin "$TAG"
+    - glab release create "$TAG" output/bcsh-* --name "$TAG" --notes "Release $TAG"
