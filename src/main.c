@@ -1,4 +1,5 @@
 #include <dirent.h>
+#include <glob.h>
 #include <libgen.h>
 #include <signal.h>
 #include <stdio.h>
@@ -156,6 +157,17 @@ void enableRaw() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &term);
 }
 
+char *parser(char *og) {
+  int i = 0;
+
+  while (og[i] != '\0') {
+    if (og[i] == '"') {
+    }
+    i++;
+  }
+	return og;
+}
+
 void run(char *args[]) {
   pid_t process = fork();
 
@@ -272,7 +284,7 @@ char *handleInput(char **history, int historyCount) {
     chars = malloc(1);
     chars[0] = '\0';
   }
-  return chars;
+  return parser(chars);
 }
 
 int main() {
