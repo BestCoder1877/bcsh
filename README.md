@@ -9,7 +9,7 @@ a full shell that is under 1MB written in one C file.
 to install ensure you have bash and curl installed and run: 
 
 ```bash
-curl -sL https://gitlab.com/bestCoder1877/bcsh/-/raw/master/install.sh | bash
+curl -sL https://git.bestcoder1877.qzz.io/bestCoder1877/bcsh/raw/branch/master/install.sh | bash
 ```
 
 ## Manual Installation
