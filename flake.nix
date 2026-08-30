@@ -26,10 +26,16 @@
           pname = "bcsh";
           version = "unstable";
           src = ./.;
-          nativeBuildInputs = [ pkgs.cmake ];
+          nativeBuildInputs = [
+            pkgs.cmake
+          ];
+          buildInputs = [
+            pkgs.glibc.static
+          ];
           configurePhase = ''
             cmake -S . -B build \
-              -DCMAKE_BUILD_TYPE=Release
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_C_FLAGS="-O2 -static"
           '';
           buildPhase = ''
             cmake --build build
