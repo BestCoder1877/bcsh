@@ -1,4 +1,5 @@
 #include <dirent.h>
+#include <fcntl.h>
 #include <glob.h>
 #include <libgen.h>
 #include <signal.h>
@@ -11,10 +12,10 @@
 #include <termios.h>
 #include <unistd.h>
 
-void ls(char *dir) {
+void ls(char *dir, int multiple) {
   DIR *directory = opendir(dir);
 
-  if (directory != NULL) {
+  if (directory != NULL && !multiple) {
     struct dirent *entry;
 
     while ((entry = readdir(directory)) != NULL) {
@@ -166,16 +167,56 @@ void disableRaw() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &term);
 }
 
-
 char *parser(char *og) {
   int i = 0;
-
+  int insideQuotes = 0;
+  glob_t theglob;
   while (og[i] != '\0') {
     if (og[i] == '"') {
+      if (insideQuotes == 0)
+        insideQuotes = 1;
+      else if (insideQuotes == 1)
+        insideQuotes = 0;
+    }
+    if (og[i] == '*' && insideQuotes == 0) {
+      int start = i;
+      int end = i;
+      int totalLen = 0;
+      while (start > 0 && og[start - 1] != ' ')
+        start--;
+      while (og[end] != ' ' && og[end] != '\0')
+        end++;
+      char *pattern = malloc(end - start + 1);
+      strncpy(pattern, &og[start], end - start);
+      pattern[end - start] = '\0';
+      glob(pattern, 0, NULL, &theglob);
+      int first = 0;
+      while (strcmp(theglob.gl_pathv[first], ".") == 0 ||
+             strcmp(theglob.gl_pathv[first], "..") == 0)
+        first++;
+      for (int j = first; j < theglob.gl_pathc; j++)
+        totalLen += strlen(theglob.gl_pathv[j]);
+      char *newog =
+          malloc(start + totalLen + theglob.gl_pathc + strlen(&og[end]) + 1);
+      strncpy(newog, og, start);
+      int pos = start;
+      for (int j = first; j < theglob.gl_pathc; j++) {
+        strcpy(newog + pos, theglob.gl_pathv[j]);
+        pos += strlen(theglob.gl_pathv[j]);
+        if (j < theglob.gl_pathc - 1)
+          newog[pos++] = ' ';
+      }
+      strcpy(newog + pos, og + end);
+      free(pattern);
+      globfree(&theglob);
+      free(og);
+      og = newog;
+      i = pos;
+      continue;
     }
     i++;
   }
-	return og;
+  return og;
 }
 
 void run(char *args[]) {
@@ -322,7 +363,7 @@ int main() {
     }
 
     if (strcmp(input, "exit") == 0) {
-			disableRaw();
+      disableRaw();
       free(input);
       return 0;
     } else if ((input[0] == 'l' && input[1] == 's' &&
@@ -331,12 +372,12 @@ int main() {
 
       if (*dir == '\0') {
         dir = ".";
-        ls(dir);
+        ls(dir, 0);
         printf("\r\n");
       } else {
         char *iter = strtok(dir, " ");
         while (iter != NULL) {
-          ls(iter);
+          ls(iter, 1);
           printf("\r\n");
           iter = strtok(NULL, " ");
         }
