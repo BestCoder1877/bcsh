@@ -18,25 +18,4 @@ RUN apt-get update && apt-get install -y \
     sudo \
     curl \
     passwd \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-COPY . .
-
-RUN chmod +x build.sh
-
-RUN ./build.sh
-
-RUN cp output/bcsh-x86_64 /bin/bcsh \
-    && chmod +x /bin/bcsh
-
-RUN echo "/bin/bcsh" >> /etc/shells
-
-RUN useradd -m -s /bin/bcsh code \
-    && passwd -d code \
-    && echo "code ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/code
-
-WORKDIR /home/code
-
-USER code
+		&& rm -rf /var/lib/apt/lists/*

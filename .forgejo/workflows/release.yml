@@ -4,44 +4,15 @@ on:
     branches:
       - master
 jobs:
-  build:
+  release:
     runs-on: run
     container:
-      image: node:22-trixie
+      image: bcsh-builder
     steps:
       - uses: actions/checkout@v4
       - run: |
-          apt-get update
-          apt-get install -y \
-            cmake make gcc \
-            gcc-i686-linux-gnu \
-            gcc-aarch64-linux-gnu \
-            gcc-arm-linux-gnueabihf \
-            gcc-arm-linux-gnueabi \
-            gcc-riscv64-linux-gnu \
-            gcc-mips-linux-gnu \
-            gcc-mipsel-linux-gnu \
-            gcc-powerpc64-linux-gnu \
-            gcc-powerpc64le-linux-gnu \
-            gcc-s390x-linux-gnu
-      - run: |
           chmod +x build.sh
           ./build.sh
-      - uses: actions/upload-artifact@v4
-        with:
-          name: build-output
-          path: output/bcsh-*
-  release:
-    needs: build
-    runs-on: run
-    container:
-      image: node:22-trixie
-    steps:
-      - run: apt-get update && apt-get install -y curl
-      - uses: actions/download-artifact@v4
-        with:
-          name: build-output
-          path: output
       - env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
           API: ${{ github.api_url }}
