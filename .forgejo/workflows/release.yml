@@ -1,0 +1,68 @@
+name: Build and Release
+on:
+  push:
+    branches:
+      - master
+jobs:
+  build:
+    runs-on: docker
+    container:
+      image: debian:trixie
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          apt-get update
+          apt-get install -y \
+            cmake make gcc \
+            gcc-i686-linux-gnu \
+            gcc-aarch64-linux-gnu \
+            gcc-arm-linux-gnueabihf \
+            gcc-arm-linux-gnueabi \
+            gcc-riscv64-linux-gnu \
+            gcc-mips-linux-gnu \
+            gcc-mipsel-linux-gnu \
+            gcc-powerpc64-linux-gnu \
+            gcc-powerpc64le-linux-gnu \
+            gcc-s390x-linux-gnu
+      - run: |
+          chmod +x build.sh
+          ./build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: output/bcsh-*
+  release:
+    needs: build
+    runs-on: docker
+    container:
+      image: debian:trixie
+    permissions:
+      contents: write
+    steps:
+      - run: apt-get update && apt-get install -y curl
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: output
+      - env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          TAG="v$(date +%Y.%m.%d-%H%M%S)"
+          ID=$(curl -s \
+            -X POST \
+            -H "Authorization: token $TOKEN" \
+            -H "Content-Type: application/json" \
+            "$API/repos/$REPO/releases" \
+            -d "{\"tag_name\":\"$TAG\",\"name\":\"$TAG\",\"body\":\"Release $TAG\",\"target_commitish\":\"$SHA\"}" |
+            sed -n 's/.*"id":\([0-9]*\).*/\1/p')
+          for file in output/bcsh-*; do
+            curl -s \
+              -X POST \
+              -H "Authorization: token $TOKEN" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@$file" \
+              "$API/repos/$REPO/releases/$ID/assets?name=$(basename "$file")"
+          done
