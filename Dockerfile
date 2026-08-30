@@ -1,4 +1,4 @@
-FROM debian:trixie
+FROM node:22-trixie
 
 RUN apt-get update && apt-get install -y \
     cmake \
@@ -18,4 +18,4 @@ RUN apt-get update && apt-get install -y \
     sudo \
     curl \
     passwd \
-		&& rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
