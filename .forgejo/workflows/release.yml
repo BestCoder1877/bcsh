@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: run
     container:
-      image: debian:trixie
+      image: node:22-trixie
     steps:
       - uses: actions/checkout@v4
       - run: |
@@ -35,7 +35,7 @@ jobs:
     needs: build
     runs-on: run
     container:
-      image: debian:trixie
+      image: node:22-trixie
     steps:
       - run: apt-get update && apt-get install -y curl
       - uses: actions/download-artifact@v4
