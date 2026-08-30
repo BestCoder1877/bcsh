@@ -12,6 +12,19 @@ to install ensure you have bash and curl installed and run:
 curl -sL https://git.bestcoder1877.qzz.io/bestCoder1877/bcsh/raw/branch/master/install.sh | bash
 ```
 
+## NixOS Installation
+
+Add this to your flake.nix
+
+```nix
+bcsh.url = "git+https://git.bestcoder1877.qzz.io/bestCoder1877/bcsh";
+```
+And then add this to systemPackages
+
+```nix
+inputs.bcsh.packages.${pkgs.system}.default
+```
+
 ## Manual Installation
 
 1. download the correct shell for your cpu architecture
