@@ -26,8 +26,9 @@ jobs:
             -H "Content-Type: application/json" \
             "$API/repos/$REPO/releases" \
             -d "{\"tag_name\":\"$TAG\",\"name\":\"$TAG\",\"body\":\"Release $TAG\",\"target_commitish\":\"$SHA\"}" |
-            sed -n 's/.*"id":\([0-9]*\).*/\1/p')
+            grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
           for file in output/bcsh-*; do
+            [ -f "$file" ] || continue
             curl -s \
               -X POST \
               -H "Authorization: token $TOKEN" \
