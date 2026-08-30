@@ -5,7 +5,7 @@ on:
       - master
 jobs:
   build:
-    runs-on: docker
+    runs-on: run
     container:
       image: debian:trixie
     steps:
@@ -33,7 +33,7 @@ jobs:
           path: output/bcsh-*
   release:
     needs: build
-    runs-on: docker
+    runs-on: run
     container:
       image: debian:trixie
     steps:
