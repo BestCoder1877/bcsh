@@ -157,6 +157,16 @@ void enableRaw() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &term);
 }
 
+void disableRaw() {
+  struct termios term;
+  tcgetattr(STDIN_FILENO, &term);
+  term.c_lflag |= (ECHO | ICANON | ISIG | IEXTEN);
+  term.c_iflag |= (BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+  term.c_oflag |= OPOST;
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &term);
+}
+
+
 char *parser(char *og) {
   int i = 0;
 
@@ -312,6 +322,7 @@ int main() {
     }
 
     if (strcmp(input, "exit") == 0) {
+			disableRaw();
       free(input);
       return 0;
     } else if ((input[0] == 'l' && input[1] == 's' &&
