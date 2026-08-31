@@ -4,29 +4,22 @@ set -e
 mkdir -p output
 
 for target in \
-    "x86_64 gcc" \
-    "i386 i686-linux-gnu-gcc" \
-    "arm64 aarch64-linux-gnu-gcc" \
-    "armhf arm-linux-gnueabihf-gcc" \
-    "armel arm-linux-gnueabi-gcc" \
-    "riscv64 riscv64-linux-gnu-gcc" \
-    "mips mips-linux-gnu-gcc" \
-    "mipsel mipsel-linux-gnu-gcc" \
-    "ppc64 powerpc64-linux-gnu-gcc" \
-    "ppc64le powerpc64le-linux-gnu-gcc" \
-    "s390x s390x-linux-gnu-gcc"
+    "x86_64 x86_64-unknown-linux-musl" \
+    "i386 i686-unknown-linux-musl" \
+    "arm64 aarch64-unknown-linux-musl" \
+    "armhf armv7-unknown-linux-musleabihf" \
+    "armel arm-unknown-linux-musleabi" \
+    "riscv64 riscv64gc-unknown-linux-musl" \
+    "mips mips-unknown-linux-musl" \
+    "mipsel mipsel-unknown-linux-musl" \
+    "ppc64 powerpc64-unknown-linux-musl" \
+    "ppc64le powerpc64le-unknown-linux-musl" \
+    "s390x s390x-unknown-linux-musl"
 do
     set -- $target
-
     ARCH=$1
-    CC=$2
-
-    cmake -S . -B build-$ARCH \
-        -DCMAKE_C_COMPILER=$CC \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_C_FLAGS="-O2 -static"
-
-    cmake --build build-$ARCH
-
-    cp build-$ARCH/bcsh output/bcsh-$ARCH
+    TARGET=$2
+    cargo build --release --target "$TARGET"
+    cp "target/$TARGET/release/bcsh" "output/bcsh-$ARCH"
+    file "output/bcsh-$ARCH"
 done
