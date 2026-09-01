@@ -6,7 +6,8 @@
   };
   outputs =
     { nixpkgs, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
       in
@@ -19,8 +20,9 @@
           buildType = "release";
           installPhase = ''
             mkdir -p $out/bin
-            cp target/release/bcsh $out/bin/bcsh
+            cp target/${pkgs.stdenv.hostPlatform.rust.rustcTarget}/release/bcsh $out/bin/bcsh
           '';
         };
-      });
+      }
+    );
 }
