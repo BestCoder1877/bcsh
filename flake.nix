@@ -17,7 +17,6 @@
           src = ./.;
           cargoLock.lockFile = ./Cargo.lock;
           buildType = "release";
-          RUSTFLAGS = "-C target-feature=+crt-static";
           installPhase = ''
             mkdir -p $out/bin
             cp target/release/bcsh $out/bin/bcsh
