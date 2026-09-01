@@ -1,45 +1,30 @@
-FROM node:22-trixie
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
-    cmake \
-    make \
-    gcc \
-    g++ \
-    musl-tools \
-    git \
+    build-essential \
     curl \
     file \
-    sudo \
-    passwd \
+    git \
+    ca-certificates \
+    python3 \
+    cmake \
+		wget \
+    clang \
+    llvm \
+    pkg-config \
+		nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+    sh -s -- -y --profile minimal
 
-ENV PATH="/root/.cargo/bin:/opt/musl/bin:$PATH"
+ENV PATH="/root/.cargo/bin:$PATH"
 
-RUN git clone --depth 1 https://github.com/richfelker/musl-cross-make.git /tmp/musl-cross-make
-
-RUN set -eux; \
-    cd /tmp/musl-cross-make; \
-    for target in \
-        x86_64-linux-musl \
-        i486-linux-musl \
-        aarch64-linux-musl \
-        arm-linux-musleabihf \
-        arm-linux-musleabi \
-        riscv64-linux-musl \
-        mips-linux-musl \
-        mipsel-linux-musl \
-        powerpc64-linux-musl \
-        powerpc64le-linux-musl \
-        s390x-linux-musl \
-    ; do \
-        echo "Building $target"; \
-        printf 'TARGET = %s\nOUTPUT = /opt/musl\n' "$target" > config.mak; \
-        make -j"$(nproc)"; \
-        make install; \
-        rm -rf build; \
-    done
+RUN rustup toolchain install nightly --profile minimal && \
+    rustup component add rust-src --toolchain nightly
 
 RUN rustup target add \
     x86_64-unknown-linux-musl \
@@ -48,43 +33,36 @@ RUN rustup target add \
     armv7-unknown-linux-musleabihf \
     arm-unknown-linux-musleabi \
     riscv64gc-unknown-linux-musl \
+    powerpc64le-unknown-linux-musl
+
+RUN rustup target add \
+    powerpc64-unknown-linux-musl \
+    s390x-unknown-linux-musl \
+    mips-unknown-linux-musl \
+    mipsel-unknown-linux-musl \
+    2>/dev/null || true
+
+RUN git clone --depth 1 https://github.com/richfelker/musl-cross-make.git /tmp/musl-cross-make
+
+WORKDIR /tmp/musl-cross-make
+
+RUN for target in \
     mips-unknown-linux-musl \
     mipsel-unknown-linux-musl \
     powerpc64-unknown-linux-musl \
+    s390x-unknown-linux-musl \
+    arm-unknown-linux-musleabi \
+    armv7-unknown-linux-musleabihf \
+    riscv64gc-unknown-linux-musl \
+    x86_64-unknown-linux-musl \
+    i686-unknown-linux-musl \
+    aarch64-unknown-linux-musl \
     powerpc64le-unknown-linux-musl \
-    s390x-unknown-linux-musl
+    ; do \
+        make clean || true; \
+        printf 'TARGET = %s\nOUTPUT = /opt/musl\n' "$target" > config.mak; \
+        make -j"$(nproc)" TARGET="$target" OUTPUT=/opt/musl; \
+        make install TARGET="$target" OUTPUT=/opt/musl; \
+    done
 
-RUN mkdir -p /root/.cargo && cat > /root/.cargo/config.toml <<'EOF'
-[target.x86_64-unknown-linux-musl]
-linker = "/opt/musl/bin/x86_64-linux-musl-gcc"
-
-[target.i686-unknown-linux-musl]
-linker = "/opt/musl/bin/i486-linux-musl-gcc"
-
-[target.aarch64-unknown-linux-musl]
-linker = "/opt/musl/bin/aarch64-linux-musl-gcc"
-
-[target.armv7-unknown-linux-musleabihf]
-linker = "/opt/musl/bin/arm-linux-musleabihf-gcc"
-
-[target.arm-unknown-linux-musleabi]
-linker = "/opt/musl/bin/arm-linux-musleabi-gcc"
-
-[target.riscv64gc-unknown-linux-musl]
-linker = "/opt/musl/bin/riscv64-linux-musl-gcc"
-
-[target.mips-unknown-linux-musl]
-linker = "/opt/musl/bin/mips-linux-musl-gcc"
-
-[target.mipsel-unknown-linux-musl]
-linker = "/opt/musl/bin/mipsel-linux-musl-gcc"
-
-[target.powerpc64-unknown-linux-musl]
-linker = "/opt/musl/bin/powerpc64-linux-musl-gcc"
-
-[target.powerpc64le-unknown-linux-musl]
-linker = "/opt/musl/bin/powerpc64le-linux-musl-gcc"
-
-[target.s390x-unknown-linux-musl]
-linker = "/opt/musl/bin/s390x-linux-musl-gcc"
-EOF
+ENV PATH="/opt/musl/bin:/root/.cargo/bin:$PATH"

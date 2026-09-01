@@ -2,7 +2,7 @@
 
 # The Best Coder Shell
 
-a full shell that is under 1MB written in one C file.
+a full shell that is under 1MB written in one rust file.
 
 ## Installation
 

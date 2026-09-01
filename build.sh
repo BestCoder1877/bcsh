@@ -19,7 +19,14 @@ do
     set -- $target
     ARCH=$1
     TARGET=$2
-    cargo build --release --target "$TARGET"
+    case "$TARGET" in
+        mips-unknown-linux-musl|mipsel-unknown-linux-musl|s390x-unknown-linux-musl)
+            cargo +nightly build -Z build-std=std,panic_abort --release --target "$TARGET"
+            ;;
+        *)
+            cargo build --release --target "$TARGET"
+            ;;
+    esac
     cp "target/$TARGET/release/bcsh" "output/bcsh-$ARCH"
     file "output/bcsh-$ARCH"
 done

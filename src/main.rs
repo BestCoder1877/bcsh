@@ -1,6 +1,6 @@
 use libc::{SIG_IGN, SIGINT, SIGTTOU, signal};
 use nix::sys::termios::{InputFlags, LocalFlags, OutputFlags, SetArg, tcgetattr, tcsetattr};
-use std::fs;
+use std::fs::{self};
 use std::io::stdin;
 use std::io::{self, Read, Write};
 
@@ -25,6 +25,78 @@ fn pwd() {
         Ok(path) => print!("{}\r\n", path.display()),
         Err(_) => print!("Current directory does not exist"),
     }
+}
+
+fn cat(file: String) {
+    let path = std::path::Path::new(&file);
+    if path.is_dir() {
+        println!("You cannot cat a directory\r\n");
+        return;
+    }
+    if !path.exists() {
+        print!("No such file or directory\r\n");
+        return;
+    }
+    let thefile = match std::fs::read_to_string(path) {
+        Ok(contents) => contents,
+        Err(_) => return,
+    };
+    for line in thefile.lines() {
+        print!("{}\r\n", line);
+    }
+}
+
+fn rm(file: String) {
+    let path = std::path::Path::new(&file);
+    if path.is_dir() {
+        print!("Use rmdir to delete a directory\r\n");
+        return;
+    }
+    let _ = std::fs::remove_file(path);
+}
+
+fn rmdir(dir: String) {
+    let path = std::path::Path::new(&dir);
+    if path.is_file() {
+        print!("Use rm to delete a file\n");
+        return;
+    }
+    let _ = std::fs::remove_dir_all(path);
+}
+
+fn touch(file: String) {
+    if file.contains('/') {
+        print!("Use mkdir to make a directory");
+        return;
+    }
+    let path = std::path::Path::new(&file);
+    if path.exists() {
+        print!("File or directory already exists");
+        return;
+    }
+    let _ = std::fs::File::create(path);
+}
+
+fn mkdir(dir: String) {
+    let path = std::path::Path::new(&dir);
+    if path.exists() {
+        print!("File or directory already exists");
+        return;
+    }
+    let _ = std::fs::create_dir_all(path);
+}
+
+fn cd(dir: String) {
+    let path = std::path::Path::new(&dir);
+    if path.is_file() {
+        print!("Not A Directory");
+        return;
+    }
+    if !path.exists() {
+        print!("No Sutch File Or Directory");
+        return;
+    }
+    let _ = std::env::set_current_dir(path);
 }
 
 fn enable_raw() {
@@ -133,7 +205,7 @@ fn run(args: &[&str]) {
                 .iter()
                 .map(|arg| std::ffi::CString::new(*arg).unwrap())
                 .collect();
-            nix::unistd::execvp(&c_args[0], &c_args).unwrap();
+            let _ = nix::unistd::execvp(&c_args[0], &c_args);
         }
         child => {
             unsafe {
@@ -173,7 +245,7 @@ fn main() {
         if input == "exit" {
             disable_raw();
             return;
-        } else if input.starts_with("ls") {
+        } else if input.starts_with("ls ") {
             let mut dir = &input[2..];
             if dir.is_empty() {
                 dir = ".";
@@ -185,8 +257,74 @@ fn main() {
                     println!("\r\n");
                 }
             }
-        } else if input.starts_with("pwd") {
+        } else if input.starts_with("pwd ") {
             pwd();
+        } else if input.starts_with("cat ") {
+            let dir = &input[3..];
+            if dir.is_empty() {
+                print!("Please specify an argument\r\n");
+                continue;
+            } else {
+                for iter in dir.split_whitespace() {
+                    cat(iter.to_string());
+                    println!("\r\n");
+                }
+            }
+        } else if input.starts_with("rmdir ") {
+            let dir = &input[5..];
+            if dir.is_empty() {
+                print!("Please specify an argument\r\n");
+                continue;
+            } else {
+                for iter in dir.split_whitespace() {
+                    rmdir(iter.to_string());
+                    println!("\r\n");
+                }
+            }
+        } else if input.starts_with("rm ") {
+            let dir = &input[2..];
+            if dir.is_empty() {
+                print!("Please specify an argument\r\n");
+                continue;
+            } else {
+                for iter in dir.split_whitespace() {
+                    rm(iter.to_string());
+                    println!("\r\n");
+                }
+            }
+        } else if input.starts_with("touch ") {
+            let dir = &input[5..];
+            if dir.is_empty() {
+                print!("Please specify an argument\r\n");
+                continue;
+            } else {
+                for iter in dir.split_whitespace() {
+                    touch(iter.to_string());
+                    println!("\r\n");
+                }
+            }
+        } else if input.starts_with("mkdir ") {
+            let dir = &input[5..];
+            if dir.is_empty() {
+                print!("Please specify an argument\r\n");
+                continue;
+            } else {
+                for iter in dir.split_whitespace() {
+                    mkdir(iter.to_string());
+                    println!("\r\n");
+                }
+            }
+        } else if input.starts_with("cd ") {
+            let dir = &input[2..];
+            if dir.is_empty() {
+                print!("Please specify an argument\r\n");
+                continue;
+            } else {
+                for iter in dir.split_whitespace() {
+                    cd(iter.to_string());
+                    println!("\r\n");
+                }
+            }
         } else {
             let args: Vec<&str> = input.split_whitespace().collect();
             if args.is_empty() {
