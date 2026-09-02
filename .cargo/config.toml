@@ -1,0 +1,32 @@
+[target.x86_64-unknown-linux-musl]
+linker = "x86_64-linux-musl-gcc"
+
+[target.i686-unknown-linux-musl]
+linker = "i686-linux-musl-gcc"
+
+[target.aarch64-unknown-linux-musl]
+linker = "aarch64-linux-musl-gcc"
+
+[target.armv7-unknown-linux-musleabihf]
+linker = "armv7l-linux-musleabihf-gcc"
+
+[target.arm-unknown-linux-musleabi]
+linker = "arm-linux-musleabi-gcc"
+
+[target.riscv64gc-unknown-linux-musl]
+linker = "riscv64-linux-musl-gcc"
+
+[target.mips-unknown-linux-musl]
+linker = "mips-linux-musl-gcc"
+
+[target.mipsel-unknown-linux-musl]
+linker = "mipsel-linux-musl-gcc"
+
+[target.powerpc64-unknown-linux-musl]
+linker = "powerpc64-linux-musl-gcc"
+
+[target.powerpc64le-unknown-linux-musl]
+linker = "powerpc64le-linux-musl-gcc"
+
+[target.s390x-unknown-linux-musl]
+linker = "s390x-linux-musl-gcc"
