@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+export PATH="/opt/musl/bin:$PATH"
+
 mkdir -p output
 
 for target in \
