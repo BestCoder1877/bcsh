@@ -10,59 +10,45 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     python3 \
     cmake \
-		wget \
+    wget \
     clang \
+    nodejs \
+    npm \
     llvm \
     pkg-config \
-		nodejs \
-    npm \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Rust and set nightly as default to ensure all targets use the correct toolchain
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
-    sh -s -- -y --profile minimal
+    sh -s -- -y --default-toolchain nightly --profile minimal
 
-ENV PATH="/root/.cargo/bin:$PATH"
+ENV PATH="/root/.cargo/bin:/opt/musl/bin:$PATH"
 
-RUN rustup toolchain install nightly --profile minimal && \
-    rustup component add rust-src --toolchain nightly
+RUN rustup component add rust-src --toolchain nightly
 
-RUN rustup target add \
+RUN rustup target add --toolchain nightly \
     x86_64-unknown-linux-musl \
     i686-unknown-linux-musl \
     aarch64-unknown-linux-musl \
     armv7-unknown-linux-musleabihf \
     arm-unknown-linux-musleabi \
     riscv64gc-unknown-linux-musl \
-    powerpc64le-unknown-linux-musl
-
-RUN rustup target add \
-    powerpc64-unknown-linux-musl \
-    s390x-unknown-linux-musl \
-    mips-unknown-linux-musl \
-    mipsel-unknown-linux-musl \
-    2>/dev/null || true
-
-RUN git clone --depth 1 https://github.com/richfelker/musl-cross-make.git /tmp/musl-cross-make
-
-WORKDIR /tmp/musl-cross-make
-
-RUN for target in \
-    mips-unknown-linux-musl \
-    mipsel-unknown-linux-musl \
-    powerpc64-unknown-linux-musl \
-    s390x-unknown-linux-musl \
-    arm-unknown-linux-musleabi \
-    armv7-unknown-linux-musleabihf \
-    riscv64gc-unknown-linux-musl \
-    x86_64-unknown-linux-musl \
-    i686-unknown-linux-musl \
-    aarch64-unknown-linux-musl \
     powerpc64le-unknown-linux-musl \
-    ; do \
-        make clean || true; \
-        printf 'TARGET = %s\nOUTPUT = /opt/musl\n' "$target" > config.mak; \
-        make -j"$(nproc)" TARGET="$target" OUTPUT=/opt/musl; \
-        make install TARGET="$target" OUTPUT=/opt/musl; \
-    done
+    powerpc64-unknown-linux-musl
 
-ENV PATH="/opt/musl/bin:/root/.cargo/bin:$PATH"
+# Install musl cross compilers from pre-built binaries (fast)
+RUN mkdir -p /opt/musl && for target in \
+    x86_64-linux-musl \
+    i686-linux-musl \
+    aarch64-linux-musl \
+    arm-linux-musleabi \
+    armv7l-linux-musleabihf \
+    riscv64-linux-musl \
+    mips-linux-musl \
+    mipsel-linux-musl \
+    powerpc64-linux-musl \
+    powerpc64le-linux-musl \
+    s390x-linux-musl \
+    ; do \
+    curl -sSL https://musl.cc/${target}-cross.tgz | tar -xz -C /opt/musl --strip-components=1; \
+    done

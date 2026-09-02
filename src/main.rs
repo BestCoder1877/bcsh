@@ -30,7 +30,8 @@ fn pwd() {
 fn cat(file: String) {
     let path = std::path::Path::new(&file);
     if path.is_dir() {
-        println!("You cannot cat a directory\r\n"); return;
+        println!("You cannot cat a directory\r\n");
+        return;
     }
     if !path.exists() {
         print!("No such file or directory\r\n");
@@ -206,7 +207,7 @@ fn run(args: &[&str]) {
                 .collect();
             let _ = nix::unistd::execvp(&c_args[0], &c_args);
         }
-        child => {
+        child if child > 0 => {
             unsafe {
                 nix::libc::setpgid(child, child);
                 nix::libc::tcsetpgrp(0, child);
@@ -217,7 +218,12 @@ fn run(args: &[&str]) {
             }
             enable_raw();
         }
-        _ => {}
+        child if child < 0 => {
+            enable_raw();
+        }
+        _ => {
+            enable_raw();
+        }
     }
 }
 
