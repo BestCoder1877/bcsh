@@ -46,7 +46,9 @@ case "$ARCH" in
         ;;
 esac
 
-URL="https://git.bestcoder1877.qzz.io/bestCoder1877/bcsh/releases/latest/download/$BINARY"
+API="https://git.bestcoder1877.qzz.io/api/v1/repos/bestCoder1877/bcsh/releases/latest"
+TAG=$(curl -fsSL "$API" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+URL="https://git.bestcoder1877.qzz.io/bestCoder1877/bcsh/releases/download/$TAG/$BINARY"
 
 curl -L "$URL" -o bcsh
 chmod +x bcsh
