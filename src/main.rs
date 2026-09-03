@@ -250,6 +250,10 @@ fn main() {
 
     let home = std::env::var("HOME").unwrap();
     let history_path = format!("{home}/bcsh_history");
+    let current_path = std::env::current_dir()
+        .unwrap()
+        .to_string_lossy()
+        .to_string();
     let mut history: Vec<String> = match fs::read_to_string(history_path.clone()) {
         Ok(data) => data.lines().map(String::from).collect(),
         Err(_) => {
@@ -261,7 +265,7 @@ fn main() {
     print!("Welcome To BCSH!\r\n");
 
     loop {
-        print!("BCSH> ");
+        print!("{}> ", current_path);
         io::stdout().flush().unwrap();
 
         let input = handle_input(&history);
