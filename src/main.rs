@@ -4,6 +4,9 @@ use std::fs::{self};
 use std::io::stdin;
 use std::io::{self, Read, Write};
 
+#[cfg(test)]
+mod tests;
+
 fn ls(dir: String) {
     if std::path::Path::new(&dir).is_dir() {
         for entry in fs::read_dir(dir).unwrap() {
@@ -65,10 +68,6 @@ fn rmdir(dir: String) {
 }
 
 fn touch(file: String) {
-    if file.contains('/') {
-        print!("Use mkdir to make a directory");
-        return;
-    }
     let path = std::path::Path::new(&file);
     if path.exists() {
         print!("File or directory already exists");
