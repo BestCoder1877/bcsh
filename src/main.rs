@@ -248,7 +248,15 @@ fn main() {
     }
     enable_raw();
 
-    let mut history: Vec<String> = Vec::new();
+    let home = std::env::var("HOME").unwrap();
+    let history_path = format!("{home}/bcsh_history");
+    let mut history: Vec<String> = match fs::read_to_string(history_path.clone()) {
+        Ok(data) => data.lines().map(String::from).collect(),
+        Err(_) => {
+            fs::write(history_path.clone(), "").unwrap();
+            Vec::new()
+        }
+    };
     println!("\x1b[2J\x1b[H");
     print!("Welcome To BCSH!\r\n");
 
@@ -256,8 +264,9 @@ fn main() {
         print!("BCSH> ");
         io::stdout().flush().unwrap();
 
-        let input= handle_input(&history);
+        let input = handle_input(&history);
         let input = env(&input);
+        let _ = std::fs::write(&history_path, history.join("\n"));
         println!("\r\n");
         if input.len() > 0 {
             history.push(input.clone());
