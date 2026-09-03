@@ -1,7 +1,7 @@
 # BCSH Roadmap & TODO List
 
 ## Phase 1: Core Shell Ergonomics & Environment
-- [ ] **Environment Variable Expansion**: Expand variables like `$HOME`, `$USER`, and `$?`.
+- [x] **Environment Variable Expansion**: Expand variables like `$HOME`, `$USER`, and `$?`.
 - [ ] **Command History Persistence**: Save and load history across sessions in `~/.bcsh_history`.
 - [ ] **Enhanced Prompt**: Display current path (and optional git branch) cleanly in the prompt.
 

@@ -227,6 +227,20 @@ fn run(args: &[&str]) {
     }
 }
 
+fn env(input: &str) -> String {
+    input
+        .split_whitespace()
+        .map(|word| {
+            if let Some(name) = word.strip_prefix('$') {
+                std::env::var(name).unwrap_or_default()
+            } else {
+                word.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 fn main() {
     unsafe {
         signal(SIGINT, SIG_IGN);
@@ -242,7 +256,8 @@ fn main() {
         print!("BCSH> ");
         io::stdout().flush().unwrap();
 
-        let input = handle_input(&history);
+        let input= handle_input(&history);
+        let input = env(&input);
         println!("\r\n");
         if input.len() > 0 {
             history.push(input.clone());
