@@ -154,6 +154,8 @@ We care more about useful tests than achieving a specific code-coverage number.
 
 ## Pull Requests
 
+Please note that you cannot contribute on GitHub. You must submit pull requests on our Forgejo instance at https://git.bestcoder1877.qzz.io/bestCoder1877/bcsh.
+
 When submitting a pull request, explain:
 
 - What you changed.
