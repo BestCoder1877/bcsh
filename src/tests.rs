@@ -107,4 +107,83 @@ mod tests {
         cat(tmp.path().join("non_existent_file.txt").to_string_lossy().to_string());
         cat(tmp.path().to_string_lossy().to_string()); // directory check
     }
+
+    #[test]
+    fn test_env_multiple() {
+        unsafe {
+            std::env::set_var("BCSH_TEST_A", "foo");
+            std::env::set_var("BCSH_TEST_B", "bar");
+        }
+        assert_eq!(env("$BCSH_TEST_A $BCSH_TEST_B"), "foo bar");
+        assert_eq!(env("plain text"), "plain text");
+    }
+
+    #[test]
+    fn test_touch_existing() {
+        let tmp = TempDir::new();
+        let filename = tmp.path().join("exists.txt").to_string_lossy().to_string();
+        touch(filename.clone());
+        assert!(std::path::Path::new(&filename).exists());
+        touch(filename.clone()); // should not panic, should not overwrite
+        assert!(std::path::Path::new(&filename).exists());
+    }
+
+    #[test]
+    fn test_mkdir_existing() {
+        let tmp = TempDir::new();
+        let dirname = tmp.path().join("dup_dir").to_string_lossy().to_string();
+        mkdir(dirname.clone());
+        assert!(std::path::Path::new(&dirname).is_dir());
+        mkdir(dirname.clone()); // should not panic
+        assert!(std::path::Path::new(&dirname).is_dir());
+    }
+
+    #[test]
+    fn test_mkdir_nested() {
+        let tmp = TempDir::new();
+        let nested = tmp.path().join("a/b/c").to_string_lossy().to_string();
+        mkdir(nested.clone());
+        assert!(std::path::Path::new(&nested).is_dir());
+    }
+
+    #[test]
+    fn test_rm_dir() {
+        let tmp = TempDir::new();
+        let dirname = tmp.path().join("rm_dir").to_string_lossy().to_string();
+        mkdir(dirname.clone());
+        rm(dirname.clone()); // rm on dir should not remove it
+        assert!(std::path::Path::new(&dirname).exists());
+    }
+
+    #[test]
+    fn test_rmdir_file() {
+        let tmp = TempDir::new();
+        let filename = tmp.path().join("file.txt").to_string_lossy().to_string();
+        touch(filename.clone());
+        rmdir(filename.clone()); // rmdir on file should not remove it
+        assert!(std::path::Path::new(&filename).exists());
+    }
+
+    #[test]
+    fn test_cd_to_file() {
+        let tmp = TempDir::new();
+        let filename = tmp.path().join("notdir.txt").to_string_lossy().to_string();
+        touch(filename.clone());
+        let orig = std::env::current_dir().unwrap();
+        cd(filename);
+        assert_eq!(std::env::current_dir().unwrap(), orig);
+    }
+
+    #[test]
+    fn test_cd_missing() {
+        let orig = std::env::current_dir().unwrap();
+        cd("/no/such/path/exists/here".to_string());
+        assert_eq!(std::env::current_dir().unwrap(), orig);
+    }
+
+    #[test]
+    fn test_ls_missing() {
+        // should not panic
+        ls("/no/such/path/here".to_string());
+    }
 }
