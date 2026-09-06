@@ -274,7 +274,7 @@ fn main() {
         if input.len() > 0 {
             history.push(input.clone());
         }
-        if input == "exit" {
+        if input.starts_with("exit") {
             disable_raw();
             break;
         } else if input.starts_with("ls ") {
