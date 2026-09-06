@@ -276,7 +276,7 @@ fn main() {
         }
         if input == "exit" {
             disable_raw();
-            return;
+            break;
         } else if input.starts_with("ls ") {
             let mut dir = &input[2..];
             if dir.is_empty() {
