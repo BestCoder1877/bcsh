@@ -48,6 +48,9 @@ A person should be able to open the file, find a command, understand it, and mod
 ### Keep the one-file design
 The shell itself must remain in **one** Rust source file. Do not split `src/main.rs` into multiple modules unless there is a strong reason. Additional files are fine for tests, docs, install scripts, and project config.
 
+### Change As Little As Possible
+If something does not need to be changed dont change it. This included the feture set and the code
+
 ## Repository Layout
 
 ```
