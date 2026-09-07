@@ -263,7 +263,7 @@ fn main() {
 
     let home = std::env::var("HOME").unwrap();
     let history_path = format!("{home}/bcsh_history");
-    let current_path = std::env::current_dir()
+    let mut current_path = std::env::current_dir()
         .unwrap()
         .to_string_lossy()
         .to_string();
@@ -278,6 +278,9 @@ fn main() {
     print!("Welcome To BCSH!\r\n");
 
     loop {
+        if let Ok(dir) = std::env::current_dir() {
+            current_path = dir.to_string_lossy().to_string();
+        }
         print!("{}> ", current_path);
         io::stdout().flush().unwrap();
 
