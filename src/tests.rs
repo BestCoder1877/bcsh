@@ -186,4 +186,23 @@ mod tests {
         // should not panic
         ls("/no/such/path/here".to_string());
     }
+
+    #[test]
+    fn test_expand_tilde() {
+        let home = std::env::var("HOME").unwrap();
+        assert_eq!(expand_tilde("~"), home);
+        assert_eq!(expand_tilde("~/foo/bar"), format!("{}/foo/bar", home));
+        assert_eq!(expand_tilde("/abs/path"), "/abs/path");
+        assert_eq!(expand_tilde("foo/bar"), "foo/bar");
+        assert_eq!(expand_tilde("~user"), "~user");
+    }
+
+    #[test]
+    fn test_env_tilde() {
+        assert_eq!(env("~"), std::env::var("HOME").unwrap());
+        assert_eq!(
+            env("~/foo"),
+            format!("{}/foo", std::env::var("HOME").unwrap())
+        );
+    }
 }

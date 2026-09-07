@@ -226,15 +226,29 @@ fn run(args: &[&str]) {
     }
 }
 
+fn expand_tilde(path: &str) -> String {
+    if path == "~" || path.starts_with("~/") {
+        let home = std::env::var("HOME").unwrap_or_default();
+        if path == "~" {
+            home
+        } else {
+            format!("{}{}", home, &path[1..])
+        }
+    } else {
+        path.to_string()
+    }
+}
+
 fn env(input: &str) -> String {
     input
         .split_whitespace()
         .map(|word| {
-            if let Some(name) = word.strip_prefix('$') {
+            let expanded = if let Some(name) = word.strip_prefix('$') {
                 std::env::var(name).unwrap_or_default()
             } else {
                 word.to_string()
-            }
+            };
+            expand_tilde(&expanded)
         })
         .collect::<Vec<_>>()
         .join(" ")
