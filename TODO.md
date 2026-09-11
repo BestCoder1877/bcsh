@@ -6,10 +6,11 @@
 - [x] **Enhanced Prompt**: Display current path cleanly in the prompt.
 
 ## Phase 2: Input & Process Flow
-- [ ] **Piping and Redirection**: Implement `|`, `>`, `>>`, and `<`.
+- [x] **Piping**: Implement `|` (pipe operator).
+- [ ] **Redirection**: Implement `>`, `>>`, and `<`.
 - [ ] **Tab Completion**: Auto-complete paths, builtins, and executables in `$PATH`.
 - [ ] **Job Control**: Support background processes (`&`), `jobs`, `fg`, and `bg`.
 
 ## Phase 3: Usability & Customization
-- [ ] **Built-in Help**: Add a `help` command listing builtins and descriptions.
+- [x] **Built-in Help**: Add a `help` command listing builtins and descriptions.
 - [ ] **Alias Support**: Add an `alias` builtin for shortcut management.

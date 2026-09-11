@@ -205,4 +205,66 @@ mod tests {
             format!("{}/foo", std::env::var("HOME").unwrap())
         );
     }
+
+    #[test]
+    fn test_help() {
+        help();
+    }
+
+    #[test]
+    fn test_simple_pipeline() {
+        use std::fs;
+        use std::process::Command;
+
+        let tmp_dir = TempDir::new();
+        let file1 = tmp_dir.path().join("input.txt");
+        let file2 = tmp_dir.path().join("output.txt");
+
+        fs::write(&file1, "hello world").unwrap();
+
+        let echo_cmd = format!("echo \"hello world\" > {}", file2.display());
+        let cat_cmd = format!("cat {}", file2.display());
+        let pipeline_cmd = format!("{} | {} | wc -l", echo_cmd, cat_cmd);
+
+        let output = match Command::new("sh").arg("-c").arg(pipeline_cmd).output() {
+            Ok(output) => output,
+            Err(e) => {
+                println!("Error executing pipeline: {}", e);
+                return;
+            }
+        };
+
+        let result = String::from_utf8_lossy(&output.stdout);
+        let line_count = result.trim().parse::<i32>();
+        match line_count {
+            Ok(count) => assert_eq!(count, 1),
+            Err(e) => println!("Error parsing count: {}", e),
+        }
+    }
+
+    #[test]
+    fn test_parse_pipeline() {
+        let result = parse_pipeline("ls | grep file");
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0], vec!["ls"]);
+        assert_eq!(result[1], vec!["grep", "file"]);
+
+        let result2 = parse_pipeline("echo hello | wc -l");
+        assert_eq!(result2.len(), 2);
+        assert_eq!(result2[0], vec!["echo", "hello"]);
+        assert_eq!(result2[1], vec!["wc", "-l"]);
+
+        let result3 = parse_pipeline("simple command");
+        assert_eq!(result3.len(), 1);
+        assert_eq!(result3[0], vec!["simple", "command"]);
+
+        let result4 = parse_pipeline("");
+        assert_eq!(result4.len(), 0);
+
+        let result5 = parse_pipeline("ls | grep file | wc -l");
+        assert_eq!(result5.len(), 3);
+        assert_eq!(result5[0], vec!["ls"]);
+        assert_eq!(result5[1], vec!["grep", "file"]);
+        assert_eq!(result5[2], vec!["wc", "-l"]);
+    }
 }

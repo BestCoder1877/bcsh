@@ -1,4 +1,4 @@
-use libc::{SIG_IGN, SIGINT, SIGTTOU, signal};
+use libc::{SIG_IGN, SIGINT, SIGTTOU, signal, isatty, STDIN_FILENO};
 use nix::sys::termios::{InputFlags, LocalFlags, OutputFlags, SetArg, tcgetattr, tcsetattr};
 use std::fs::{self};
 use std::io::stdin;
@@ -98,34 +98,52 @@ fn cd(dir: String) {
     let _ = std::env::set_current_dir(path);
 }
 
+fn help() {
+    print!("BCSH Built-in Commands:\r\n");
+    print!("  cd <dir>     Change current directory\r\n");
+    print!("  ls [dir]     List directory contents\r\n");
+    print!("  pwd          Print current working directory\r\n");
+    print!("  cat <file>   Concatenate and display file contents\r\n");
+    print!("  rm <file>    Remove a file\r\n");
+    print!("  rmdir <dir>  Remove a directory\r\n");
+    print!("  touch <file> Create an empty file\r\n");
+    print!("  mkdir <dir>  Create a directory\r\n");
+    print!("  help         Display built-in commands\r\n");
+    print!("  exit         Exit the shell\r\n");
+}
+
 fn enable_raw() {
-    let mut term = tcgetattr(&stdin()).unwrap();
-    term.input_flags.remove(
-        InputFlags::BRKINT
-            | InputFlags::ICRNL
-            | InputFlags::INPCK
-            | InputFlags::ISTRIP
-            | InputFlags::IXON,
-    );
-    term.output_flags.remove(OutputFlags::OPOST);
-    term.local_flags
-        .remove(LocalFlags::ECHO | LocalFlags::ICANON | LocalFlags::IEXTEN);
-    tcsetattr(&stdin(), SetArg::TCSAFLUSH, &term).unwrap();
+    if unsafe { libc::isatty(libc::STDIN_FILENO) } == 1 {
+        let mut term = tcgetattr(&stdin()).unwrap();
+        term.input_flags.remove(
+            InputFlags::BRKINT
+                | InputFlags::ICRNL
+                | InputFlags::INPCK
+                | InputFlags::ISTRIP
+                | InputFlags::IXON,
+        );
+        term.output_flags.remove(OutputFlags::OPOST);
+        term.local_flags
+            .remove(LocalFlags::ECHO | LocalFlags::ICANON | LocalFlags::IEXTEN);
+        tcsetattr(&stdin(), SetArg::TCSAFLUSH, &term).unwrap();
+    }
 }
 
 fn disable_raw() {
-    let mut term = tcgetattr(&stdin()).unwrap();
-    term.local_flags
-        .insert(LocalFlags::ECHO | LocalFlags::ICANON | LocalFlags::ISIG | LocalFlags::IEXTEN);
-    term.input_flags.insert(
-        InputFlags::BRKINT
-            | InputFlags::ICRNL
-            | InputFlags::INPCK
-            | InputFlags::ISTRIP
-            | InputFlags::IXON,
-    );
-    term.output_flags.insert(OutputFlags::OPOST);
-    tcsetattr(&stdin(), SetArg::TCSAFLUSH, &term).unwrap();
+    if unsafe { libc::isatty(libc::STDIN_FILENO) } == 1 {
+        let mut term = tcgetattr(&stdin()).unwrap();
+        term.local_flags
+            .insert(LocalFlags::ECHO | LocalFlags::ICANON | LocalFlags::ISIG | LocalFlags::IEXTEN);
+        term.input_flags.insert(
+            InputFlags::BRKINT
+                | InputFlags::ICRNL
+                | InputFlags::INPCK
+                | InputFlags::ISTRIP
+                | InputFlags::IXON,
+        );
+        term.output_flags.insert(OutputFlags::OPOST);
+        tcsetattr(&stdin(), SetArg::TCSAFLUSH, &term).unwrap();
+    }
 }
 
 fn handle_input(history: &[String]) -> String {
@@ -226,6 +244,95 @@ fn run(args: &[&str]) {
     }
 }
 
+fn run_pipeline(commands: &[Vec<&str>]) {
+    let mut fds: Vec<[libc::c_int; 2]> = Vec::new();
+
+    for i in 0..commands.len() {
+        let mut pipe_fd: [libc::c_int; 2] = [-1; 2];
+        if i < commands.len() - 1 {
+            let flags = libc::O_CLOEXEC;
+            unsafe { nix::libc::pipe2(pipe_fd.as_mut_ptr(), flags) };
+            fds.push(pipe_fd);
+        } else {
+            fds.push([-1; 2]);
+        }
+    }
+
+    let mut children: Vec<libc::c_int> = Vec::new();
+    let mut current_stdin: libc::c_int = -1;
+
+    for (i, cmd) in commands.iter().enumerate() {
+        let fd_in = if i == 0 {
+            0
+        } else {
+            current_stdin
+        };
+
+        let fd_out = if i < commands.len() - 1 {
+            fds[i][1]
+        } else {
+            1
+        };
+
+        let child_pid = unsafe { nix::libc::fork() };
+        match child_pid {
+            pid if pid == 0 => {
+                unsafe { nix::libc::setpgid(0, 0) };
+                unsafe { nix::libc::tcsetpgrp(0, nix::libc::getpid()) };
+
+                if fd_in != 0 {
+                    unsafe { libc::dup2(fd_in, 0) };
+                }
+                if fd_out != 1 {
+                    unsafe { libc::dup2(fd_out, 1) };
+                }
+
+                for j in 0..fds.len() {
+                    if fds[j][0] != -1 {
+                        unsafe { libc::close(fds[j][0]) };
+                    }
+                    if fds[j][1] != -1 {
+                        unsafe { libc::close(fds[j][1]) };
+                    }
+                }
+
+                let c_args: Vec<std::ffi::CString> = cmd
+                    .iter()
+                    .map(|arg| std::ffi::CString::new(*arg).unwrap())
+                    .collect();
+                match nix::unistd::execvp(&c_args[0], &c_args) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        eprint!("bcsh: command not found: {}", cmd[0]);
+                        unsafe { libc::_exit(1) };
+                    }
+                }
+            }
+            pid if pid > 0 => {
+                children.push(pid);
+                if fd_in != -1 && fd_in != 0 {
+                    unsafe { libc::close(fd_in) };
+                }
+                if fd_out != -1 && fd_out != 1 {
+                    unsafe { libc::close(fd_out) };
+                }
+                current_stdin = if i < commands.len() - 1 {
+                    fds[i][0]
+                } else {
+                    -1
+                };
+            }
+            _ => {}
+        }
+    }
+
+    for pid in &children {
+        unsafe { nix::libc::waitpid(*pid, std::ptr::null_mut(), 0) };
+    }
+
+    unsafe { nix::libc::tcsetpgrp(0, nix::libc::getpgrp()) };
+}
+
 fn expand_tilde(path: &str) -> String {
     if path == "~" || path.starts_with("~/") {
         let home = std::env::var("HOME").unwrap_or_default();
@@ -237,6 +344,14 @@ fn expand_tilde(path: &str) -> String {
     } else {
         path.to_string()
     }
+}
+
+fn parse_pipeline(input: &str) -> Vec<Vec<&str>> {
+    input
+        .split('|')
+        .map(|cmd| cmd.trim().split_whitespace().collect())
+        .filter(|cmd: &Vec<&str>| !cmd.is_empty())
+        .collect()
 }
 
 fn env(input: &str) -> String {
@@ -294,6 +409,12 @@ fn main() {
         if input.starts_with("exit") {
             disable_raw();
             break;
+        } else if input.contains("|") {
+            disable_raw();
+            let commands = parse_pipeline(&input);
+            run_pipeline(&commands);
+            enable_raw();
+            println!("\r\n");
         } else if input.starts_with("ls ") {
             let mut dir = &input[2..];
             if dir.is_empty() {
@@ -374,6 +495,9 @@ fn main() {
                     println!("\r\n");
                 }
             }
+        } else if input == "help" || input.starts_with("help ") {
+            help();
+            println!("\r\n");
         } else {
             let args: Vec<&str> = input.split_whitespace().collect();
             if args.is_empty() {
