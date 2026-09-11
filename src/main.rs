@@ -1,4 +1,4 @@
-use libc::{SIG_IGN, SIGINT, SIGTTOU, signal, isatty, STDIN_FILENO};
+use libc::{SIG_IGN, SIGINT, SIGTTOU, signal};
 use nix::sys::termios::{InputFlags, LocalFlags, OutputFlags, SetArg, tcgetattr, tcsetattr};
 use std::fs::{self};
 use std::io::stdin;
