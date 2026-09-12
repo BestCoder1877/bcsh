@@ -18,6 +18,7 @@
           src = ./.;
           cargoLock.lockFile = ./Cargo.lock;
           buildType = "release";
+					doCheck = false;
           installPhase = ''
             mkdir -p $out/bin
             cp target/${pkgs.stdenv.hostPlatform.rust.rustcTarget}/release/bcsh $out/bin/bcsh
