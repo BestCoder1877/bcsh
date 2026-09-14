@@ -5,7 +5,5 @@ edition = "2024"
 
 [dependencies]
 nix = { version = "0.31", features = ["process", "signal", "term", "fs"]}
-glob = "0.3"
-crossterm = "0.29"
 signal-hook = "0.3"
 libc = "0.2"

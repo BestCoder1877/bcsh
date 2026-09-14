@@ -108,8 +108,15 @@ fn help() {
     print!("  rmdir <dir>  Remove a directory\r\n");
     print!("  touch <file> Create an empty file\r\n");
     print!("  mkdir <dir>  Create a directory\r\n");
+    print!("  clear        Clear screen and scrollback\r\n");
+    print!("  reset        Clear screen and scrollback\r\n");
     print!("  help         Display built-in commands\r\n");
     print!("  exit         Exit the shell\r\n");
+}
+
+fn clear() {
+    print!("\x1b[2J\x1b[3J\x1b[H");
+    let _ = io::stdout().flush();
 }
 
 fn enable_raw() {
@@ -441,7 +448,7 @@ fn main() {
             Vec::new()
         }
     };
-    println!("\x1b[2J\x1b[H");
+    clear();
     startup();
 
     loop {
@@ -458,7 +465,7 @@ fn main() {
         if !input.is_empty() {
             history.push(input.clone());
         }
-        if input.starts_with("exit") {
+        if input.trim() == "exit" {
             disable_raw();
             break;
         } else if input.contains("|") {
@@ -550,6 +557,12 @@ fn main() {
         } else if input == "help" || input.starts_with("help ") {
             help();
             println!("\r\n");
+        } else if input == "clear"
+            || input.starts_with("clear ")
+            || input == "reset"
+            || input.starts_with("reset ")
+        {
+            clear();
         } else {
             let args: Vec<&str> = input.split_whitespace().collect();
             if args.is_empty() {
