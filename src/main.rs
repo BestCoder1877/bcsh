@@ -369,6 +369,28 @@ fn env(input: &str) -> String {
         .join(" ")
 }
 
+fn startup() {
+    let path = expand_tilde("~/.bcsh_startup");
+    if let Ok(content) = fs::read_to_string(path) {
+        for line in content.lines() {
+            if let Some(input) = line.strip_prefix("hide") {
+                let args: Vec<&str> = input.split_whitespace().collect();
+                if args.is_empty() {
+                    continue;
+                }
+                run(&args);
+            } else if let Some(input) = line.strip_prefix("show") {
+                let args: Vec<&str> = input.split_whitespace().collect();
+                if args.is_empty() {
+                    continue;
+                }
+                run(&args);
+                println!("\r\n");
+            }
+        }
+    }
+}
+
 fn main() {
     unsafe {
         signal(SIGINT, SIG_IGN);
@@ -377,7 +399,7 @@ fn main() {
     enable_raw();
 
     let home = std::env::var("HOME").unwrap();
-    let history_path = format!("{home}/bcsh_history");
+    let history_path = format!("{home}/.bcsh_history");
     let mut current_path = std::env::current_dir()
         .unwrap()
         .to_string_lossy()
@@ -386,11 +408,12 @@ fn main() {
         Ok(data) => data.lines().map(String::from).collect(),
         Err(_) => {
             fs::write(history_path.clone(), "").unwrap();
+            print!("Welcome To BCSH!\r\n");
             Vec::new()
         }
     };
     println!("\x1b[2J\x1b[H");
-    print!("Welcome To BCSH!\r\n");
+    startup();
 
     loop {
         if let Ok(dir) = std::env::current_dir() {
