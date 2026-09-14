@@ -148,6 +148,7 @@ fn disable_raw() {
 
 fn handle_input(history: &[String]) -> String {
     let mut input = String::new();
+    let mut cursor_pos = 0;
     let mut history_pos = history.len();
     loop {
         let mut buffer = [0; 1];
@@ -161,8 +162,24 @@ fn handle_input(history: &[String]) -> String {
                 return input;
             }
             127 | 8 => {
-                if input.pop().is_some() {
-                    print!("\x08 \x08");
+                if cursor_pos > 0 {
+                    input.remove(cursor_pos - 1);
+                    cursor_pos -= 1;
+                    print!(
+                        "\r\x1b[2K{}> {}",
+                        std::env::current_dir().unwrap_or_default().display(),
+                        input
+                    );
+                    print!(
+                        "\x1b[{}G",
+                        cursor_pos
+                            + std::env::current_dir()
+                                .unwrap_or_default()
+                                .display()
+                                .to_string()
+                                .len()
+                            + 3
+                    );
                     io::stdout().flush().unwrap();
                 }
             }
@@ -174,8 +191,13 @@ fn handle_input(history: &[String]) -> String {
                 match sequence {
                     [b'[', b'A'] if history_pos > 0 => {
                         history_pos -= 1;
-                        print!("\r\x1b[2KBCSH> {}", history[history_pos]);
                         input = history[history_pos].clone();
+                        cursor_pos = input.len();
+                        print!(
+                            "\r\x1b[2K{}> {}",
+                            std::env::current_dir().unwrap_or_default().display(),
+                            input
+                        );
                         io::stdout().flush().unwrap();
                     }
                     [b'[', b'B'] => {
@@ -186,14 +208,23 @@ fn handle_input(history: &[String]) -> String {
                             history_pos = history.len();
                             input.clear();
                         }
-                        print!("\r\x1b[2KBCSH> {}", input);
+                        cursor_pos = input.len();
+                        print!(
+                            "\r\x1b[2K{}> {}",
+                            std::env::current_dir().unwrap_or_default().display(),
+                            input
+                        );
                         io::stdout().flush().unwrap();
                     }
                     [b'[', b'D'] => {
-                        print!("\x1b[1D");
-                        io::stdout().flush().unwrap();
+                        if cursor_pos > 0 {
+                            cursor_pos -= 1;
+                            print!("\x1b[1D");
+                            io::stdout().flush().unwrap();
+                        }
                     }
-                    [b'[', b'C'] => {
+                    [b'[', b'C'] if cursor_pos < input.len() => {
+                        cursor_pos += 1;
                         print!("\x1b[1C");
                         io::stdout().flush().unwrap();
                     }
@@ -201,8 +232,14 @@ fn handle_input(history: &[String]) -> String {
                 }
             }
             byte => {
-                input.push(byte as char);
-                print!("{}", byte as char);
+                input.insert(cursor_pos, byte as char);
+                cursor_pos += 1;
+                let prompt = std::env::current_dir()
+                    .unwrap_or_default()
+                    .display()
+                    .to_string();
+                print!("\r\x1b[2K{}> {}", prompt, input);
+                print!("\x1b[{}G", cursor_pos + prompt.len() + 3);
                 io::stdout().flush().unwrap();
             }
         }

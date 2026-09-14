@@ -11,7 +11,6 @@ pkgs.mkShell {
     diffutils
     rustfmt
     clippy
-		zsh
   ];
 
   # Environment variables for development
@@ -24,6 +23,6 @@ pkgs.mkShell {
     rustup install nightly
     rustup default nightly
 		clear
-		zsh
+		cargo run
   '';
 }
