@@ -61,7 +61,7 @@ fn rm(file: String) {
 fn rmdir(dir: String) {
     let path = std::path::Path::new(&dir);
     if path.is_file() {
-        print!("Use rm to delete a file\n");
+        println!("Use rm to delete a file");
         return;
     }
     let _ = std::fs::remove_dir_all(path);
@@ -114,7 +114,7 @@ fn help() {
 
 fn enable_raw() {
     if unsafe { libc::isatty(libc::STDIN_FILENO) } == 1 {
-        let mut term = tcgetattr(&stdin()).unwrap();
+        let mut term = tcgetattr(stdin()).unwrap();
         term.input_flags.remove(
             InputFlags::BRKINT
                 | InputFlags::ICRNL
@@ -125,13 +125,13 @@ fn enable_raw() {
         term.output_flags.remove(OutputFlags::OPOST);
         term.local_flags
             .remove(LocalFlags::ECHO | LocalFlags::ICANON | LocalFlags::IEXTEN);
-        tcsetattr(&stdin(), SetArg::TCSAFLUSH, &term).unwrap();
+        tcsetattr(stdin(), SetArg::TCSAFLUSH, &term).unwrap();
     }
 }
 
 fn disable_raw() {
     if unsafe { libc::isatty(libc::STDIN_FILENO) } == 1 {
-        let mut term = tcgetattr(&stdin()).unwrap();
+        let mut term = tcgetattr(stdin()).unwrap();
         term.local_flags
             .insert(LocalFlags::ECHO | LocalFlags::ICANON | LocalFlags::ISIG | LocalFlags::IEXTEN);
         term.input_flags.insert(
@@ -142,7 +142,7 @@ fn disable_raw() {
                 | InputFlags::IXON,
         );
         term.output_flags.insert(OutputFlags::OPOST);
-        tcsetattr(&stdin(), SetArg::TCSAFLUSH, &term).unwrap();
+        tcsetattr(stdin(), SetArg::TCSAFLUSH, &term).unwrap();
     }
 }
 
@@ -262,21 +262,13 @@ fn run_pipeline(commands: &[Vec<&str>]) {
     let mut current_stdin: libc::c_int = -1;
 
     for (i, cmd) in commands.iter().enumerate() {
-        let fd_in = if i == 0 {
-            0
-        } else {
-            current_stdin
-        };
+        let fd_in = if i == 0 { 0 } else { current_stdin };
 
-        let fd_out = if i < commands.len() - 1 {
-            fds[i][1]
-        } else {
-            1
-        };
+        let fd_out = if i < commands.len() - 1 { fds[i][1] } else { 1 };
 
         let child_pid = unsafe { nix::libc::fork() };
         match child_pid {
-            pid if pid == 0 => {
+            0 => {
                 unsafe { nix::libc::setpgid(0, 0) };
                 unsafe { nix::libc::tcsetpgrp(0, nix::libc::getpid()) };
 
@@ -287,12 +279,12 @@ fn run_pipeline(commands: &[Vec<&str>]) {
                     unsafe { libc::dup2(fd_out, 1) };
                 }
 
-                for j in 0..fds.len() {
-                    if fds[j][0] != -1 {
-                        unsafe { libc::close(fds[j][0]) };
+                for fd in &fds {
+                    if fd[0] != -1 {
+                        unsafe { libc::close(fd[0]) };
                     }
-                    if fds[j][1] != -1 {
-                        unsafe { libc::close(fds[j][1]) };
+                    if fd[1] != -1 {
+                        unsafe { libc::close(fd[1]) };
                     }
                 }
 
@@ -349,7 +341,7 @@ fn expand_tilde(path: &str) -> String {
 fn parse_pipeline(input: &str) -> Vec<Vec<&str>> {
     input
         .split('|')
-        .map(|cmd| cmd.trim().split_whitespace().collect())
+        .map(|cmd| cmd.split_whitespace().collect())
         .filter(|cmd: &Vec<&str>| !cmd.is_empty())
         .collect()
 }
@@ -426,7 +418,7 @@ fn main() {
         let input = env(&input);
         let _ = std::fs::write(&history_path, history.join("\n"));
         println!("\r\n");
-        if input.len() > 0 {
+        if !input.is_empty() {
             history.push(input.clone());
         }
         if input.starts_with("exit") {

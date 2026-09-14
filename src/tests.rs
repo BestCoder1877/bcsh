@@ -47,7 +47,11 @@ mod tests {
     #[test]
     fn test_touch_and_rm() {
         let tmp = TempDir::new();
-        let filename = tmp.path().join("test_file.txt").to_string_lossy().to_string();
+        let filename = tmp
+            .path()
+            .join("test_file.txt")
+            .to_string_lossy()
+            .to_string();
 
         touch(filename.clone());
         assert!(std::path::Path::new(&filename).exists());
@@ -104,7 +108,11 @@ mod tests {
         fs::write(&file_path, "line1\nline2").unwrap();
 
         cat(file_path.to_string_lossy().to_string());
-        cat(tmp.path().join("non_existent_file.txt").to_string_lossy().to_string());
+        cat(tmp
+            .path()
+            .join("non_existent_file.txt")
+            .to_string_lossy()
+            .to_string());
         cat(tmp.path().to_string_lossy().to_string()); // directory check
     }
 
