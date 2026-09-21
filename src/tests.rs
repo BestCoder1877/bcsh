@@ -220,6 +220,103 @@ mod tests {
     }
 
     #[test]
+    fn test_pwd() {
+        let orig = std::env::current_dir().unwrap();
+        let tmp = TempDir::new();
+        let _ = std::env::set_current_dir(tmp.path());
+        pwd();
+        let _ = std::env::set_current_dir(&orig);
+    }
+
+    #[test]
+    fn test_env_mixed_text_and_vars() {
+        unsafe {
+            std::env::set_var("BCSH_TEST_GREETING", "hello");
+        }
+        assert_eq!(env("echo $BCSH_TEST_GREETING world"), "echo hello world");
+        assert_eq!(env("no vars here"), "no vars here");
+        assert_eq!(env("$BCSH_TEST_GREETING"), "hello");
+    }
+
+    #[test]
+    fn test_ls_multiple_files() {
+        let tmp = TempDir::new();
+        let f1 = tmp.path().join("a.txt");
+        let f2 = tmp.path().join("b.txt");
+        let f3 = tmp.path().join("c.txt");
+        fs::write(&f1, "1").unwrap();
+        fs::write(&f2, "2").unwrap();
+        fs::write(&f3, "3").unwrap();
+        ls(tmp.path().to_string_lossy().to_string());
+    }
+
+    #[test]
+    fn test_cat_empty_file() {
+        let tmp = TempDir::new();
+        let file_path = tmp.path().join("empty.txt");
+        fs::write(&file_path, "").unwrap();
+        cat(file_path.to_string_lossy().to_string());
+    }
+
+    #[test]
+    fn test_rm_missing_file() {
+        let tmp = TempDir::new();
+        let missing = tmp.path().join("no_such_file.txt");
+        rm(missing.to_string_lossy().to_string());
+    }
+
+    #[test]
+    fn test_rmdir_missing_dir() {
+        let tmp = TempDir::new();
+        let missing = tmp.path().join("no_such_dir");
+        rmdir(missing.to_string_lossy().to_string());
+    }
+
+    #[test]
+    fn test_parse_pipeline_trailing_pipe() {
+        let result = parse_pipeline("ls |");
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0], vec!["ls"]);
+
+        let result2 = parse_pipeline("| ls");
+        assert_eq!(result2.len(), 1);
+        assert_eq!(result2[0], vec!["ls"]);
+
+        let result3 = parse_pipeline("a | b |");
+        assert_eq!(result3.len(), 2);
+    }
+
+    #[test]
+    fn test_cd_relative() {
+        let tmp = TempDir::new();
+        let sub = tmp.path().join("rel_sub");
+        fs::create_dir(&sub).unwrap();
+
+        let orig = std::env::current_dir().unwrap();
+        let _ = std::env::set_current_dir(tmp.path());
+        cd("rel_sub".to_string());
+        assert_eq!(
+            std::env::current_dir().unwrap().canonicalize().unwrap(),
+            sub.canonicalize().unwrap()
+        );
+        let _ = std::env::set_current_dir(&orig);
+    }
+
+    #[test]
+    fn test_env_empty_input() {
+        assert_eq!(env(""), "");
+    }
+
+    #[test]
+    fn test_parse_pipeline_extra_pipes() {
+        let result = parse_pipeline("  ls   |   grep  foo  |  wc  -l  ");
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0], vec!["ls"]);
+        assert_eq!(result[1], vec!["grep", "foo"]);
+        assert_eq!(result[2], vec!["wc", "-l"]);
+    }
+
+    #[test]
     fn test_simple_pipeline() {
         use std::fs;
         use std::process::Command;
