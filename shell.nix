@@ -9,6 +9,5 @@ pkgs.mkShell {
 
 	shellHook = ''
 		clear
-		devenv shell
 	'';
 }

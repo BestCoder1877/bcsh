@@ -406,7 +406,7 @@ fn env(input: &str) -> String {
 }
 
 fn startup() {
-    let path = expand_tilde("~/.bcsh_startup");
+    let path = expand_tilde("~/.bcsh/startup");
     if let Ok(content) = fs::read_to_string(path) {
         for line in content.lines() {
             if let Some(input) = line.strip_prefix("hide") {
@@ -425,6 +425,35 @@ fn startup() {
             }
         }
     }
+}
+
+fn list_alias() -> (Vec<String>, Vec<String>) {
+    let path = expand_tilde("~/.bcsh/alias");
+    let mut alias_commands = vec![];
+    let mut alias_titles = vec![];
+    if let Ok(content) = fs::read_to_string(path) {
+        for line in content.lines() {
+            let args: Vec<&str> = line.split("=").collect();
+            if args.len() != 2 {
+                continue;
+            }
+            alias_titles.push(args[0].to_string());
+            alias_commands.push(args[1].to_string());
+        }
+    }
+    (alias_commands, alias_titles)
+}
+
+fn swap_alias(command: String) -> bool {
+    let aliases = list_alias();
+    for (i, alias_title) in aliases.1.iter().enumerate() {
+        if command == *alias_title {
+            let args: Vec<&str> = aliases.0[i].split_whitespace().collect();
+            run(&args);
+            return true;
+        }
+    }
+    false
 }
 
 fn main() {
@@ -464,6 +493,9 @@ fn main() {
         println!("\r\n");
         if !input.is_empty() {
             history.push(input.clone());
+        }
+        if swap_alias(input.clone()) == true {
+            continue;
         }
         if input.trim() == "exit" {
             disable_raw();
