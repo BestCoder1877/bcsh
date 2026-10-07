@@ -434,11 +434,8 @@ fn list_alias() -> (Vec<String>, Vec<String>) {
     if let Ok(content) = fs::read_to_string(path) {
         for line in content.lines() {
             let args: Vec<&str> = line.split("=").collect();
-            if args.len() != 2 {
-                continue;
-            }
             alias_titles.push(args[0].to_string());
-            alias_commands.push(args[1].to_string());
+            alias_commands.push(args[1..].join("="));
         }
     }
     (alias_commands, alias_titles)
