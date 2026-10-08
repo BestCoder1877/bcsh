@@ -13,4 +13,4 @@
 
 ## Phase 3: Usability & Customization
 - [x] **Built-in Help**: Add a `help` command listing builtins and descriptions.
-- [ ] **Alias Support**: Add an `alias` builtin for shortcut management.
+- [x] **Alias Support**: Add an `alias` builtin for shortcut management.

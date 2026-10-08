@@ -98,6 +98,39 @@ fn cd(dir: String) {
     let _ = std::env::set_current_dir(path);
 }
 
+fn tree(dir: String, prefix: &str) {
+    let path = std::path::Path::new(&dir);
+    if path.is_file() {
+        print!("{}{}\r\n", prefix, path.display());
+        return;
+    }
+    if prefix.is_empty() {
+        print!("{}\r\n", path.display());
+    }
+    let entries = match fs::read_dir(&dir) {
+        Ok(entries) => entries,
+        Err(_) => return,
+    };
+    let mut names: Vec<String> = entries
+        .filter_map(|e| e.ok())
+        .map(|e| e.file_name().to_string_lossy().to_string())
+        .filter(|n| n != "." && n != "..")
+        .collect();
+    names.sort();
+    for (i, name) in names.iter().enumerate() {
+        let is_last = i == names.len() - 1;
+        let connector = if is_last { "└── " } else { "├── " };
+        print!("{}{}{}\r\n", prefix, connector, name);
+        let sub = path.join(name);
+        let new_prefix = format!(
+            "{}{}",
+            prefix,
+            if is_last { "    " } else { "│   " }
+        );
+        tree(sub.to_string_lossy().to_string(), &new_prefix);
+    }
+}
+
 fn help() {
     print!("BCSH Built-in Commands:\r\n");
     print!("  cd <dir>     Change current directory\r\n");
@@ -108,6 +141,7 @@ fn help() {
     print!("  rmdir <dir>  Remove a directory\r\n");
     print!("  touch <file> Create an empty file\r\n");
     print!("  mkdir <dir>  Create a directory\r\n");
+    print!("  tree <dir>   Display a directory tree\r\n");
     print!("  clear        Clear screen and scrollback\r\n");
     print!("  reset        Clear screen and scrollback\r\n");
     print!("  help         Display built-in commands\r\n");
@@ -582,6 +616,15 @@ fn main() {
                     cd(iter.to_string());
                     println!("\r\n");
                 }
+            }
+        } else if input.starts_with("tree") {
+            let mut dir = &input[4..];
+            if dir.is_empty() {
+                dir = ".";
+            }
+            for iter in dir.trim_start_matches(" ").split_whitespace() {
+                tree(iter.to_string(), "");
+                println!("\r\n");
             }
         } else if input == "help" || input.starts_with("help ") {
             help();
