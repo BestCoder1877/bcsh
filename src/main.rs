@@ -537,7 +537,7 @@ fn main() {
             run_pipeline(&commands);
             enable_raw();
             println!("\r\n");
-        } else if input.starts_with("ls ") {
+        } else if input.starts_with("ls") {
             let mut dir = &input[2..];
             if dir.is_empty() {
                 dir = ".";
@@ -549,9 +549,9 @@ fn main() {
                     println!("\r\n");
                 }
             }
-        } else if input.starts_with("pwd ") {
+        } else if input.starts_with("pwd") {
             pwd();
-        } else if input.starts_with("cat ") {
+        } else if input.starts_with("cat") {
             let dir = &input[3..];
             if dir.is_empty() {
                 print!("Please specify an argument\r\n");
@@ -562,7 +562,7 @@ fn main() {
                     println!("\r\n");
                 }
             }
-        } else if input.starts_with("rmdir ") {
+        } else if input.starts_with("rmdir") {
             let dir = &input[5..];
             if dir.is_empty() {
                 print!("Please specify an argument\r\n");
@@ -573,7 +573,7 @@ fn main() {
                     println!("\r\n");
                 }
             }
-        } else if input.starts_with("rm ") {
+        } else if input.starts_with("rm") {
             let dir = &input[2..];
             if dir.is_empty() {
                 print!("Please specify an argument\r\n");
@@ -584,7 +584,7 @@ fn main() {
                     println!("\r\n");
                 }
             }
-        } else if input.starts_with("touch ") {
+        } else if input.starts_with("touch") {
             let dir = &input[5..];
             if dir.is_empty() {
                 print!("Please specify an argument\r\n");
@@ -595,7 +595,7 @@ fn main() {
                     println!("\r\n");
                 }
             }
-        } else if input.starts_with("mkdir ") {
+        } else if input.starts_with("mkdir") {
             let dir = &input[5..];
             if dir.is_empty() {
                 print!("Please specify an argument\r\n");
@@ -606,7 +606,7 @@ fn main() {
                     println!("\r\n");
                 }
             }
-        } else if input.starts_with("cd ") {
+        } else if input.starts_with("cd") {
             let dir = &input[2..];
             if dir.is_empty() {
                 print!("Please specify an argument\r\n");
