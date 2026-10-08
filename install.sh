@@ -5,7 +5,7 @@
 if touch /tmp/testfile 2>/dev/null; then
     rm -f /tmp/testfile
 else
-	"${BCSH_INSTALLER_PATH:=~/bcsh-installer}"
+	BCSH_INSTALLER_PATH="$HOME/bcsh-installer"
 fi
 
 curl -fsSL "https://git.bestcoder1877.qzz.io/bestCoder1877/bcsh/raw/branch/master/installer/main" -o $BCSH_INSTALLER_PATH
