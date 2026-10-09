@@ -38,6 +38,20 @@ func runAsSudo(command []string, password string) {
 	cmd.Run()
 }
 
+func installDest() string {
+	f, err := os.Create("/bin/.bcsh-install-test")
+	if err == nil {
+		f.Close()
+		os.Remove("/bin/.bcsh-install-test")
+		return "/bin/bcsh"
+	}
+	home, err := os.UserHomeDir()
+	if err == nil {
+		return home + "/bcsh"
+	}
+	return "/bin/bcsh"
+}
+
 func initialModel() model {
 	themodel := model{
 		choices:    []string{"Install"},
@@ -139,6 +153,7 @@ func (m model) View() tea.View {
 }
 
 func (m model) install() {
+	dest := installDest()
 	arch := runtime.GOARCH
 	binary := ""
 	switch arch {
@@ -186,8 +201,10 @@ func (m model) install() {
 	file.Close()
 	resp.Body.Close()
 	os.Chmod("bcsh", 0755)
-	runAsSudo([]string{"sudo", "install", "-m", "755", "bcsh", "/bin/bcsh"}, m.password)
-	runAsSudo([]string{"sudo", "sh", "-c", `grep -qx "/bin/bcsh" /etc/shells || echo "/bin/bcsh" >> /etc/shells`}, m.password)
+	runAsSudo([]string{"sudo", "install", "-m", "755", "bcsh", dest}, m.password)
+	if dest == "/bin/bcsh" {
+		runAsSudo([]string{"sudo", "sh", "-c", `grep -qx "/bin/bcsh" /etc/shells || echo "/bin/bcsh" >> /etc/shells`}, m.password)
+	}
 	os.Remove("bcsh")
 }
 
