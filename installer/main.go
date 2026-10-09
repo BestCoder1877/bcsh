@@ -6,13 +6,23 @@ import (
 	"fmt"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/common-nighthawk/go-figure"
+	"context"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 )
+
+var client = &http.Client{
+	Transport: &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return net.Dial("tcp4", addr)
+		},
+	},
+}
 
 type model struct {
 	choices    []string
@@ -154,15 +164,24 @@ func (m model) install() {
 		binary = "bcsh-s390x"
 	}
 	api := "https://git.bestcoder1877.qzz.io/api/v1/repos/bestCoder1877/bcsh/releases/latest"
-	resp, _ := http.Get(api)
+	resp, err := client.Get(api)
+	if err != nil || resp == nil {
+		return
+	}
 	var release struct {
 		TagName string `json:"tag_name"`
 	}
 	json.NewDecoder(resp.Body).Decode(&release)
 	resp.Body.Close()
 	url := "https://git.bestcoder1877.qzz.io/bestCoder1877/bcsh/releases/download/" + release.TagName + "/" + binary
-	resp, _ = http.Get(url)
-	file, _ := os.Create("bcsh")
+	resp, err = client.Get(url)
+	if err != nil || resp == nil {
+		return
+	}
+	file, err := os.Create("bcsh")
+	if err != nil {
+		return
+	}
 	io.Copy(file, resp.Body)
 	file.Close()
 	resp.Body.Close()
