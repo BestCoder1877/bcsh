@@ -11,6 +11,7 @@
 - [x] **Alias Support**: Add an `alias` builtin for shortcut management.
 - [ ] **Exit Status `$?`**: Track and expose the exit code of the last command.
 - [ ] **`export` Builtin**: Set environment variables for child processes.
-- [ ] **`cd -`**: Return to the previous directory.
-- [ ] **`which` / `type`**: Locate a command in `$PATH`.
+- [ ] **`envset`/`envrm`/`envedit` Builtins**
+- [ ] **`pathset`/`pathrm`/`pathedit` Builtins** 
+- [ ] **`where`**: Locate a command in `$PATH`.
 - [ ] **`cd ..`**: Navigate up one directory level.

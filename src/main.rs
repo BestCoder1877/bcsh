@@ -122,11 +122,7 @@ fn tree(dir: String, prefix: &str) {
         let connector = if is_last { "└── " } else { "├── " };
         print!("{}{}{}\r\n", prefix, connector, name);
         let sub = path.join(name);
-        let new_prefix = format!(
-            "{}{}",
-            prefix,
-            if is_last { "    " } else { "│   " }
-        );
+        let new_prefix = format!("{}{}", prefix, if is_last { "    " } else { "│   " });
         tree(sub.to_string_lossy().to_string(), &new_prefix);
     }
 }
@@ -439,6 +435,58 @@ fn env(input: &str) -> String {
         .join(" ")
 }
 
+fn envset(input: &str) {
+    let input = input.trim();
+    let Some((key, value)) = input.split_once('=') else {
+        print!("A key and value is reuqired\r\n");
+        return;
+    };
+    if key.is_empty() {
+        print!("A key and value is reuqired\r\n");
+        return;
+    }
+    unsafe {
+        std::env::set_var(key, value);
+    }
+    let path = expand_tilde("~/.bcsh/env");
+    let content = fs::read_to_string(&path).unwrap_or_default();
+    let mut lines: Vec<String> = content
+        .lines()
+        .map(String::from)
+        .collect();
+    lines.push(format!("{key}={value}"));
+    let _ = fs::write(&path, lines.join("\n") + "\n");
+}
+
+fn envrm(input: &str) {
+    let input = input.trim();
+    unsafe {
+        std::env::remove_var(input);
+    }
+    let path = expand_tilde("~/.bcsh/env");
+    let content = fs::read_to_string(&path).unwrap_or_default();
+    let mut lines: Vec<String> = content
+        .lines()
+        .map(String::from)
+        .collect();
+    let index = lines.iter().position(|s| s.starts_with(input)).unwrap();
+    lines.remove(index);
+    let _ = fs::write(&path, lines.join("\n") + "\n");
+}
+
+fn loadenv() {
+    let path = expand_tilde("~/.bcsh/env");
+    if let Ok(content) = fs::read_to_string(path) {
+        for line in content.lines() {
+            if let Some((key, value)) = line.split_once('=') {
+                unsafe {
+                    std::env::set_var(key, value);
+                }
+            }
+        }
+    }
+}
+
 fn startup() {
     let path = expand_tilde("~/.bcsh/startup");
     if let Ok(content) = fs::read_to_string(path) {
@@ -509,6 +557,7 @@ fn main() {
         }
     };
     clear();
+    loadenv();
     startup();
 
     loop {
@@ -549,8 +598,27 @@ fn main() {
                     println!("\r\n");
                 }
             }
+        } else if input.starts_with("envrm") {
+            let dir = &input[6..];
+            if dir.is_empty() {
+                print!("Please specify and argument\r\n");
+        } else {
+            for iter in dir.split_whitespace() {
+                envrm(iter);
+                println!("\r\n");
+            }
+        }
         } else if input.starts_with("pwd") {
             pwd();
+        } else if input.starts_with("envset") {
+            let dir = &input[6..];
+            if dir.is_empty() {
+                print!("Please specify an argument\r\n");
+                continue;
+            } else {
+                envset(&dir);
+                println!("\r\n");
+            }
         } else if input.starts_with("cat") {
             let dir = &input[3..];
             if dir.is_empty() {
