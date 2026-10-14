@@ -3,6 +3,7 @@ use nix::sys::termios::{InputFlags, LocalFlags, OutputFlags, SetArg, tcgetattr, 
 use std::fs::{self};
 use std::io::stdin;
 use std::io::{self, Read, Write};
+use std::process::Command;
 
 #[cfg(test)]
 mod tests;
@@ -450,10 +451,7 @@ fn envset(input: &str) {
     }
     let path = expand_tilde("~/.bcsh/env");
     let content = fs::read_to_string(&path).unwrap_or_default();
-    let mut lines: Vec<String> = content
-        .lines()
-        .map(String::from)
-        .collect();
+    let mut lines: Vec<String> = content.lines().map(String::from).collect();
     lines.push(format!("{key}={value}"));
     let _ = fs::write(&path, lines.join("\n") + "\n");
 }
@@ -465,13 +463,62 @@ fn envrm(input: &str) {
     }
     let path = expand_tilde("~/.bcsh/env");
     let content = fs::read_to_string(&path).unwrap_or_default();
-    let mut lines: Vec<String> = content
+    let mut lines: Vec<String> = content.lines().map(String::from).collect();
+    if let Some(index) = lines.iter().position(|s| s.starts_with(input)) {
+        lines.remove(index);
+        let _ = fs::write(&path, lines.join("\n") + "\n");
+    }
+}
+
+fn envedit(input: &str) {
+    let tmp_path = "/tmp/bcsh_envadd.txt".to_string();
+    let mut vars = String::new();
+    if input.is_empty() {
+        for (key, value) in std::env::vars() {
+            vars += &format!("{key}={value}\n");
+        }
+    } else {
+        vars = input.to_string();
+    }
+    fs::write(tmp_path.clone(), &vars).unwrap();
+    Command::new(std::env::var("EDITOR").unwrap_or("vi".into()))
+        .arg(&tmp_path)
+        .status()
+        .unwrap();
+    let edited = std::fs::read_to_string(tmp_path).unwrap();
+    let env_path = expand_tilde("~/.bcsh/env");
+    let content = fs::read_to_string(&env_path).unwrap_or_default();
+    let mut lines: Vec<String> = content.lines().map(String::from).collect();
+    let old_keys: Vec<String> = vars
         .lines()
-        .map(String::from)
+        .filter_map(|l| l.split_once('=').map(|(k, _)| k.to_string()))
         .collect();
-    let index = lines.iter().position(|s| s.starts_with(input)).unwrap();
-    lines.remove(index);
-    let _ = fs::write(&path, lines.join("\n") + "\n");
+    for key in &old_keys {
+        if let Some(index) = lines.iter().position(|s| s.starts_with(key)) {
+            lines.remove(index);
+        }
+    }
+    for line in edited.lines() {
+        if let Some((key, value)) = line.split_once('=') {
+            lines.push(format!("{key}={value}"));
+        }
+    }
+    let _ = fs::write(&env_path, lines.join("\n") + "\n");
+    for key in &old_keys {
+        if !edited.lines().any(|l| l.starts_with(key)) {
+            unsafe {
+                std::env::remove_var(key);
+            }
+        }
+    }
+    for line in edited.lines() {
+        if let Some((key, value)) = line.split_once('=') {
+            unsafe {
+                std::env::set_var(key, value);
+            }
+        }
+    }
+    print!("Edit Completed sucsessfuly!\r\n");
 }
 
 fn loadenv() {
@@ -485,6 +532,24 @@ fn loadenv() {
             }
         }
     }
+}
+
+fn syncenv() {
+    let path = expand_tilde("~/.bcsh/env");
+    let content = fs::read_to_string(&path).unwrap_or_default();
+    let mut lines: Vec<String> = content.lines().map(String::from).collect();
+    let existing: Vec<String> = lines
+        .iter()
+        .filter_map(|l| l.split_once('=').map(|(k, _)| k.to_string()))
+        .collect();
+    for (key, value) in std::env::vars() {
+        if !existing.contains(&key) {
+            lines.push(format!("{key}={value}"));
+        }
+    }
+    lines.sort();
+    lines.dedup();
+    let _ = fs::write(&path, lines.join("\n") + "\n");
 }
 
 fn startup() {
@@ -569,6 +634,7 @@ fn main() {
 
         let input = handle_input(&history);
         let input = env(&input);
+        syncenv();
         let _ = std::fs::write(&history_path, history.join("\n"));
         println!("\r\n");
         if !input.is_empty() {
@@ -598,16 +664,27 @@ fn main() {
                     println!("\r\n");
                 }
             }
+        } else if input.starts_with("envedit") {
+            let mut dir = &input[7..];
+            if dir.is_empty() {
+                envedit("");
+                println!("\r\n");
+            } else {
+                for iter in dir.split_whitespace() {
+                    envedit(iter);
+                    println!("\r\n");
+                }
+            }
         } else if input.starts_with("envrm") {
             let dir = &input[6..];
             if dir.is_empty() {
                 print!("Please specify and argument\r\n");
-        } else {
-            for iter in dir.split_whitespace() {
-                envrm(iter);
-                println!("\r\n");
+            } else {
+                for iter in dir.split_whitespace() {
+                    envrm(iter);
+                    println!("\r\n");
+                }
             }
-        }
         } else if input.starts_with("pwd") {
             pwd();
         } else if input.starts_with("envset") {
