@@ -472,10 +472,28 @@ fn envrm(input: &str) {
 
 fn envedit(input: &str) {
     let tmp_path = "/tmp/bcsh_envadd.txt".to_string();
+    let exclude_path = expand_tilde("~/.bcsh/envexclude");
+    let exclude = fs::read_to_string(&exclude_path).unwrap_or_default();
+    let exclude_keys: Vec<String> = exclude
+        .lines()
+        .filter(|l| !l.is_empty())
+        .map(String::from)
+        .collect();
     let mut vars = String::new();
     if input.is_empty() {
+        for key in &exclude_keys {
+            unsafe {
+                std::env::remove_var(key);
+            }
+        }
         for (key, value) in std::env::vars() {
+            if exclude_keys.contains(&key) {
+                continue;
+            }
             vars += &format!("{key}={value}\n");
+        }
+        for key in &exclude_keys {
+            vars += &format!("{key}?unloaded\n");
         }
     } else {
         vars = input.to_string();
@@ -489,28 +507,54 @@ fn envedit(input: &str) {
     let env_path = expand_tilde("~/.bcsh/env");
     let content = fs::read_to_string(&env_path).unwrap_or_default();
     let mut lines: Vec<String> = content.lines().map(String::from).collect();
-    let old_keys: Vec<String> = vars
-        .lines()
-        .filter_map(|l| l.split_once('=').map(|(k, _)| k.to_string()))
-        .collect();
-    for key in &old_keys {
+
+    let mut old_keys: Vec<(String, bool)> = Vec::new();
+    for line in vars.lines() {
+        if let Some((key, _)) = line.split_once('=') {
+            old_keys.push((key.to_string(), false));
+        } else if let Some(key) = line.strip_suffix("?unloaded")
+            && !key.is_empty()
+        {
+            old_keys.push((key.to_string(), true));
+        }
+    }
+
+    for (key, _) in &old_keys {
         if let Some(index) = lines.iter().position(|s| s.starts_with(key)) {
             lines.remove(index);
         }
     }
+
+    let mut new_exclude: Vec<String> = Vec::new();
     for line in edited.lines() {
         if let Some((key, value)) = line.split_once('=') {
             lines.push(format!("{key}={value}"));
+        } else if let Some(key) = line.strip_suffix("?unloaded")
+            && !key.is_empty()
+            && !new_exclude.contains(&key.to_string())
+        {
+            new_exclude.push(key.to_string());
         }
     }
     let _ = fs::write(&env_path, lines.join("\n") + "\n");
-    for key in &old_keys {
-        if !edited.lines().any(|l| l.starts_with(key)) {
+
+    for (key, was_excluded) in &old_keys {
+        let referenced_as_value = edited.lines().any(|l| l.starts_with(&format!("{key}=")));
+        if *was_excluded {
+            if !referenced_as_value && !new_exclude.contains(key) {
+                new_exclude.push(key.clone());
+                unsafe {
+                    std::env::remove_var(key);
+                }
+            }
+        } else if !referenced_as_value && !new_exclude.contains(key) {
+            new_exclude.push(key.clone());
             unsafe {
                 std::env::remove_var(key);
             }
         }
     }
+
     for line in edited.lines() {
         if let Some((key, value)) = line.split_once('=') {
             unsafe {
@@ -518,14 +562,26 @@ fn envedit(input: &str) {
             }
         }
     }
+
+    let _ = fs::write(&exclude_path, new_exclude.join("\n") + "\n");
     print!("Edit Completed sucsessfuly!\r\n");
 }
 
 fn loadenv() {
     let path = expand_tilde("~/.bcsh/env");
+    let exclude_path = expand_tilde("~/.bcsh/envexclude");
+    let exclude = fs::read_to_string(&exclude_path).unwrap_or_default();
+    let exclude_keys: Vec<String> = exclude
+        .lines()
+        .filter(|l| !l.is_empty())
+        .map(String::from)
+        .collect();
     if let Ok(content) = fs::read_to_string(path) {
         for line in content.lines() {
             if let Some((key, value)) = line.split_once('=') {
+                if exclude_keys.contains(&key.to_string()) {
+                    continue;
+                }
                 unsafe {
                     std::env::set_var(key, value);
                 }
@@ -536,6 +592,13 @@ fn loadenv() {
 
 fn syncenv() {
     let path = expand_tilde("~/.bcsh/env");
+    let exclude_path = expand_tilde("~/.bcsh/envexclude");
+    let exclude = fs::read_to_string(&exclude_path).unwrap_or_default();
+    let exclude_keys: Vec<String> = exclude
+        .lines()
+        .filter(|l| !l.is_empty())
+        .map(String::from)
+        .collect();
     let content = fs::read_to_string(&path).unwrap_or_default();
     let mut lines: Vec<String> = content.lines().map(String::from).collect();
     let existing: Vec<String> = lines
@@ -543,7 +606,7 @@ fn syncenv() {
         .filter_map(|l| l.split_once('=').map(|(k, _)| k.to_string()))
         .collect();
     for (key, value) in std::env::vars() {
-        if !existing.contains(&key) {
+        if !existing.contains(&key) && !exclude_keys.contains(&key) {
             lines.push(format!("{key}={value}"));
         }
     }
