@@ -139,6 +139,9 @@ fn help() {
     print!("  touch <file> Create an empty file\r\n");
     print!("  mkdir <dir>  Create a directory\r\n");
     print!("  tree <dir>   Display a directory tree\r\n");
+    print!("  envset <K>=<V>  Set an environment variable\r\n");
+    print!("  envrm <key>    Remove an environment variable\r\n");
+    print!("  envedit [str]  Edit environment variables in $EDITOR\r\n");
     print!("  clear        Clear screen and scrollback\r\n");
     print!("  reset        Clear screen and scrollback\r\n");
     print!("  help         Display built-in commands\r\n");
@@ -492,9 +495,6 @@ fn envedit(input: &str) {
             }
             vars += &format!("{key}={value}\n");
         }
-        for key in &exclude_keys {
-            vars += &format!("{key}?unloaded\n");
-        }
     } else {
         vars = input.to_string();
     }
@@ -512,10 +512,11 @@ fn envedit(input: &str) {
     for line in vars.lines() {
         if let Some((key, _)) = line.split_once('=') {
             old_keys.push((key.to_string(), false));
-        } else if let Some(key) = line.strip_suffix("?unloaded")
-            && !key.is_empty()
-        {
-            old_keys.push((key.to_string(), true));
+        }
+    }
+    for key in &exclude_keys {
+        if !old_keys.iter().any(|(k, _)| k == key) {
+            old_keys.push((key.clone(), true));
         }
     }
 
@@ -728,7 +729,7 @@ fn main() {
                 }
             }
         } else if input.starts_with("envedit") {
-            let mut dir = &input[7..];
+            let dir = &input[7..];
             if dir.is_empty() {
                 envedit("");
                 println!("\r\n");
