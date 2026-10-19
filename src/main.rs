@@ -495,11 +495,13 @@ fn envedit(input: &str) {
             }
             vars += &format!("{key}={value}\n");
         }
+    } else if let Ok(value) = std::env::var(input) {
+        vars = format!("{input}={value}\n");
     } else {
         vars = input.to_string();
     }
     fs::write(tmp_path.clone(), &vars).unwrap();
-    Command::new(std::env::var("EDITOR").unwrap_or("vi".into()))
+    Command::new(std::env::var("EDITOR").unwrap_or("nvim".into()))
         .arg(&tmp_path)
         .status()
         .unwrap();
