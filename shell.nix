@@ -4,10 +4,17 @@ pkgs.mkShell {
   name = "bcsh-dev";
 
   nativeBuildInputs = with pkgs; [
-		devenv
+    gitFull
+    coreutils
+    diffutils
+    cargo
+    rustc
+    rustfmt
+    clippy
+    rust-analyzer
   ];
 
-	shellHook = ''
-		clear
-	'';
+  shellHook = ''
+    clear
+  '';
 }
