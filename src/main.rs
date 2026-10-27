@@ -87,7 +87,15 @@ fn mkdir(dir: String) {
 }
 
 fn cd(dir: String) {
-    let path = std::path::Path::new(&dir);
+    let path = if dir == ".." {
+        std::env::current_dir()
+            .expect("You are at /")
+            .parent()
+            .unwrap_or(std::path::Path::new("/"))
+            .to_path_buf()
+    } else {
+        std::path::PathBuf::from(&dir)
+    };
     if path.is_file() {
         print!("Not A Directory");
         return;

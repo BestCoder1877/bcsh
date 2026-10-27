@@ -1,4 +1,4 @@
-# BCSH Roadmap & TODO List
+# BCSH TODO List
 
 - [x] **Environment Variable Expansion**: Expand variables like `$HOME`, `$USER`, and `$?`.
 - [x] **Command History Persistence**: Save and load history across sessions in `~/.bcsh_history`.
@@ -14,4 +14,4 @@
 - [x] **`envset`/`envrm`/`envedit` Builtins**
 - [ ] **`pathset`/`pathrm`/`pathedit` Builtins** 
 - [ ] **`where`**: Locate a command in `$PATH`.
-- [ ] **`cd ..`**: Navigate up one directory level.
+- [x] **`cd ..`**: Navigate up one directory level.

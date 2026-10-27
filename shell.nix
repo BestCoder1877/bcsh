@@ -9,5 +9,6 @@ pkgs.mkShell {
 
 	shellHook = ''
 		clear
+		cargo run
 	'';
 }
