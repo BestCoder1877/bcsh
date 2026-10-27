@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     npm \
     llvm \
     pkg-config \
+    dpkg-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Rust and set nightly as default to ensure all targets use the correct toolchain
