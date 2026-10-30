@@ -39,16 +39,6 @@ func runAsSudo(command []string, password string) {
 }
 
 func installDest() string {
-	f, err := os.Create("/bin/.bcsh-install-test")
-	if err == nil {
-		f.Close()
-		os.Remove("/bin/.bcsh-install-test")
-		return "/bin/bcsh"
-	}
-	home, err := os.UserHomeDir()
-	if err == nil {
-		return home + "/bcsh"
-	}
 	return "/bin/bcsh"
 }
 
