@@ -32,18 +32,22 @@ ENV PATH="/root/.cargo/bin:/opt/musl/bin:$PATH"
 
 RUN rustup component add rust-src --toolchain nightly
 
-RUN rustup target add --toolchain nightly \
-    x86_64-unknown-linux-musl \
-    i686-unknown-linux-musl \
-    aarch64-unknown-linux-musl \
-    armv7-unknown-linux-musleabihf \
-    arm-unknown-linux-musleabi \
-    riscv64gc-unknown-linux-musl \
-    mips-unknown-linux-musl \
-    mipsel-unknown-linux-musl \
-    powerpc64le-unknown-linux-musl \
-    powerpc64-unknown-linux-musl \
-    s390x-unknown-linux-musl
+RUN for t in \
+        x86_64-unknown-linux-musl \
+        i686-unknown-linux-musl \
+        aarch64-unknown-linux-musl \
+        armv7-unknown-linux-musleabihf \
+        arm-unknown-linux-musleabi \
+        riscv64gc-unknown-linux-musl \
+        mips-unknown-linux-musl \
+        mipsel-unknown-linux-musl \
+        powerpc64le-unknown-linux-musl \
+        powerpc64-unknown-linux-musl \
+        s390x-unknown-linux-musl \
+    ; do \
+        rustup target add --toolchain nightly "$t" \
+            || echo "WARNING: no prebuilt std for target $t; skipping" ; \
+    done
 
 RUN mkdir -p /opt/musl && for target in \
     x86_64-linux-musl \

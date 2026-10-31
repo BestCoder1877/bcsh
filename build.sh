@@ -22,7 +22,7 @@ for target in $targets; do
         s390x-unknown-linux-musl)           out=bcsh-s390x ;;
     esac
 
-    cargo build --release --target "$target"
+    cargo build --release --target "$target" || { echo "WARNING: skipping $target (no prebuilt std)"; continue; }
     cp "target/$target/release/bcsh" "output/$out"
     echo "Built output/$out"
 done
