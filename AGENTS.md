@@ -116,7 +116,7 @@ If a tool complains and the fix makes the code less clear or more complex, **lea
 
 ## Pull Requests
 
-- PRs go to the Forgejo instance at `https://git.bestcoder1877.qzz.io/bestCoder1877/bcsh`, **not** GitHub.
+- PRs go to GitHub at `https://github.com/bestCoder1877/bcsh`, **not** Forgejo.
 - Explain what you changed, why, any behavior changes, and any known limitations.
 - Keep changes focused.
 
@@ -138,7 +138,7 @@ The human who submits your work is fully responsible for it. From `AI.md`:
 - Do not add features just because Bash has them.
 - Do not write or edit user-facing docs (README, install instructions, release notes, user guides) — humans only.
 - Do not submit AI-generated code on behalf of a human without it being reviewed and tested by that human.
-- Do not open PRs on GitHub. Forgejo only.
+- Do not open PRs on Forgejo. GitHub only.
 
 ## Hard "Do" List
 

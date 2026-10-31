@@ -18,7 +18,7 @@ You will need:
 
 Clone the repository:
 
-    git clone https://git.bestcoder1877.qzz.io/bestCoder1877/bcsh.git
+    git clone https://github.com/bestCoder1877/bcsh.git
     cd bcsh
 
 Build BCSH:
@@ -151,27 +151,6 @@ Then fix the problem and run:
 Tests are a safety net, not a goal by themselves.
 
 We care more about useful tests than achieving a specific code-coverage number.
-
-## Pull Requests
-
-Please note that you cannot contribute on GitHub. You must submit pull requests on our Forgejo instance at https://git.bestcoder1877.qzz.io/bestCoder1877/bcsh.
-
-When submitting a pull request, explain:
-
-- What you changed.
-- Why you changed it.
-- Any important behavior changes.
-- Any known limitations.
-
-Keep changes focused when possible.
-
-Before submitting, run:
-
-    cargo fmt --check
-    cargo test
-    cargo clippy
-
-However, don't change working code simply to satisfy a tool if doing so makes the code less clear or adds unnecessary complexity. Use common sense.
 
 ## Feature Requests
 

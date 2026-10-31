@@ -168,7 +168,7 @@ func (m model) install() {
 	case "s390x":
 		binary = "bcsh-s390x"
 	}
-	api := "https://git.bestcoder1877.qzz.io/api/v1/repos/bestCoder1877/bcsh/releases/latest"
+	api := "https://api.github.com/repos/bestCoder1877/bcsh/releases/latest"
 	resp, err := client.Get(api)
 	if err != nil || resp == nil {
 		return
@@ -178,7 +178,7 @@ func (m model) install() {
 	}
 	json.NewDecoder(resp.Body).Decode(&release)
 	resp.Body.Close()
-	url := "https://git.bestcoder1877.qzz.io/bestCoder1877/bcsh/releases/download/" + release.TagName + "/" + binary
+	url := "https://github.com/bestCoder1877/bcsh/releases/download/" + release.TagName + "/" + binary
 	resp, err = client.Get(url)
 	if err != nil || resp == nil {
 		return

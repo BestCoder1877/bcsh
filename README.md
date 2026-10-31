@@ -9,7 +9,7 @@ a full shell that is under 1MB written in one rust file.
 to install ensure you have bash and curl installed and run: 
 
 ```bash
-curl -sL https://git.bestcoder1877.qzz.io/bestCoder1877/bcsh/raw/branch/master/install.sh | bash
+curl -sL https://raw.githubusercontent.com/bestCoder1877/bcsh/master/install.sh | bash
 ```
 
 ## NixOS Installation
@@ -17,7 +17,7 @@ curl -sL https://git.bestcoder1877.qzz.io/bestCoder1877/bcsh/raw/branch/master/i
 Add this to your flake.nix
 
 ```nix
-bcsh.url = "git+https://git.bestcoder1877.qzz.io/bestCoder1877/bcsh";
+bcsh.url = "git+https://github.com/bestCoder1877/bcsh.git";
 ```
 And then add this to systemPackages
 
