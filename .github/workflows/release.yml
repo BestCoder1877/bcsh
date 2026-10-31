@@ -8,35 +8,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Rust toolchain, musl targets, and build-std source
+      - name: Install musl targets
         run: |
-          rustup toolchain install nightly
-          rustup default nightly
-          rustup component add rust-src --toolchain nightly
-          rustup target add --toolchain nightly \
+          rustup target add \
             x86_64-unknown-linux-musl \
             i686-unknown-linux-musl \
             aarch64-unknown-linux-musl \
             armv7-unknown-linux-musleabihf \
             arm-unknown-linux-musleabi \
             riscv64gc-unknown-linux-musl \
+            mips-unknown-linux-musl \
+            mipsel-unknown-linux-musl \
+            powerpc64-unknown-linux-musl \
             powerpc64le-unknown-linux-musl \
-            powerpc64-unknown-linux-musl
-          mkdir -p /opt/musl
-          for target in \
-            x86_64-linux-musl \
-            i686-linux-musl \
-            aarch64-linux-musl \
-            arm-linux-musleabi \
-            armv7l-linux-musleabihf \
-            riscv64-linux-musl \
-            mips-linux-musl \
-            mipsel-linux-musl \
-            powerpc64-linux-musl \
-            powerpc64le-linux-musl \
-            s390x-linux-musl; do \
-            curl -sSL https://musl.cc/${target}-cross.tgz | tar -xz -C /opt/musl --strip-components=1; \
-          done
+            s390x-unknown-linux-musl
       - name: Build musl binaries
         run: |
           chmod +x build.sh
