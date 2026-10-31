@@ -39,8 +39,11 @@ RUN rustup target add --toolchain nightly \
     armv7-unknown-linux-musleabihf \
     arm-unknown-linux-musleabi \
     riscv64gc-unknown-linux-musl \
+    mips-unknown-linux-musl \
+    mipsel-unknown-linux-musl \
     powerpc64le-unknown-linux-musl \
-    powerpc64-unknown-linux-musl
+    powerpc64-unknown-linux-musl \
+    s390x-unknown-linux-musl
 
 RUN mkdir -p /opt/musl && for target in \
     x86_64-linux-musl \
@@ -70,12 +73,12 @@ COPY . .
 
 RUN ./build.sh && ./installer/build.sh
 
+ARG GH_TOKEN=
 ARG PUBLISH_RELEASE=false
+ENV GH_TOKEN=$GH_TOKEN
 ENV PUBLISH_RELEASE=$PUBLISH_RELEASE
 
-RUN --mount=type=secret,id=gh_token \
-    GH_TOKEN="$(cat /run/secrets/gh_token 2>/dev/null)"; \
-    if [ "$PUBLISH_RELEASE" = "true" ] && [ -n "$GH_TOKEN" ]; then \
+RUN if [ "$PUBLISH_RELEASE" = "true" ] && [ -n "$GH_TOKEN" ]; then \
       TAG=$(git tag --points-at HEAD 2>/dev/null | head -n1); \
       if [ -z "$TAG" ]; then \
         echo "No tag points at HEAD; skipping release publish."; \
