@@ -57,6 +57,7 @@ RUN ./build.sh && ./installer/build.sh
 ARG GH_TOKEN=
 
 RUN TAG=$(git tag --points-at HEAD 2>/dev/null | head -n1); \
+    [ -z "$TAG" ] && TAG="build-$(git rev-parse --short HEAD)"; \
     if gh release view "$TAG" >/dev/null 2>&1; then \
       gh release upload "$TAG" output/bcsh-* installer/output/main-* --clobber; \
     else \
