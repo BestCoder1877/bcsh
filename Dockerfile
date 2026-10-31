@@ -17,9 +17,14 @@ RUN apt-get update && apt-get install -y \
     llvm \
     pkg-config \
     dpkg-dev \
+    xz-utils \
+    binutils \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Rust and set nightly as default to ensure all targets use the correct toolchain
+RUN curl -fsSL https://go.dev/dl/go1.27.3.linux-amd64.tar.gz | tar -C /usr/local -xz && \
+    ln -sf /usr/local/go/bin/go /usr/bin/go && \
+    ln -sf /usr/local/go/bin/gofmt /usr/bin/gofmt
+
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     sh -s -- -y --default-toolchain nightly --profile minimal
 
@@ -34,10 +39,12 @@ RUN rustup target add --toolchain nightly \
     armv7-unknown-linux-musleabihf \
     arm-unknown-linux-musleabi \
     riscv64gc-unknown-linux-musl \
+    mips-unknown-linux-musl \
+    mipsel-unknown-linux-musl \
     powerpc64le-unknown-linux-musl \
-    powerpc64-unknown-linux-musl
+    powerpc64-unknown-linux-musl \
+    s390x-unknown-linux-musl
 
-# Install musl cross compilers from pre-built binaries (fast)
 RUN mkdir -p /opt/musl && for target in \
     x86_64-linux-musl \
     i686-linux-musl \
@@ -53,3 +60,35 @@ RUN mkdir -p /opt/musl && for target in \
     ; do \
     curl -sSL https://musl.cc/${target}-cross.tgz | tar -xz -C /opt/musl --strip-components=1; \
     done
+
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+    | tee /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update && apt-get install -y gh \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY . .
+
+RUN ./build.sh && ./installer/build.sh
+
+ARG GH_TOKEN=
+ARG PUBLISH_RELEASE=false
+ENV GH_TOKEN=$GH_TOKEN
+ENV PUBLISH_RELEASE=$PUBLISH_RELEASE
+
+RUN if [ "$PUBLISH_RELEASE" = "true" ] && [ -n "$GH_TOKEN" ]; then \
+      TAG=$(git tag --points-at HEAD 2>/dev/null | head -n1); \
+      if [ -z "$TAG" ]; then \
+        echo "No tag points at HEAD; skipping release publish."; \
+      elif gh release view "$TAG" >/dev/null 2>&1; then \
+        echo "Release $TAG exists; uploading assets."; \
+        gh release upload "$TAG" output/bcsh-* installer/output/main-* --clobber; \
+      else \
+        echo "Creating release $TAG."; \
+        gh release create "$TAG" output/bcsh-* installer/output/main-* --generate-release-notes; \
+      fi; \
+    else \
+      echo "PUBLISH_RELEASE != true or GH_TOKEN empty; skipping release publish."; \
+    fi

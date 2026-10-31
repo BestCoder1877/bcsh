@@ -16,7 +16,11 @@ case "$ARCH" in
 	armv7l|armv6l) ARCH=arm ;;
 esac
 
-curl -fsSL "https://github.com/bestCoder1877/bcsh/raw/master/installer/output/main-$ARCH" -o $BCSH_INSTALLER_PATH
+TAG=$(curl -fsSL "https://api.github.com/repos/bestCoder1877/bcsh/releases/latest" \
+    | grep -m1 '"tag_name"' \
+    | sed 's/.*"tag_name": *"//;s/".*//')
+
+curl -fsSL "https://github.com/bestCoder1877/bcsh/releases/download/$TAG/main-$ARCH" -o $BCSH_INSTALLER_PATH
 chmod +x $BCSH_INSTALLER_PATH
 $BCSH_INSTALLER_PATH &
 pid=$!
