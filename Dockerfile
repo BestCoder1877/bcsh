@@ -21,21 +21,26 @@ ENV PATH="/root/.cargo/bin:/opt/musl/bin:$PATH"
 
 RUN rustup component add rust-src --toolchain nightly
 
-RUN mkdir -p /opt/musl && for target in \
-    x86_64-linux-musl \
-    i686-linux-musl \
-    aarch64-linux-musl \
-    arm-linux-musleabi \
-    armv7l-linux-musleabihf \
-    riscv64-linux-musl \
-    mips-linux-musl \
-    mipsel-linux-musl \
-    powerpc64-linux-musl \
-    powerpc64le-linux-musl \
-    s390x-linux-musl \
+RUN set -e; mkdir -p /opt/musl; \
+    for target in \
+        x86_64-linux-musl \
+        i686-linux-musl \
+        aarch64-linux-musl \
+        arm-linux-musleabi \
+        armv7l-linux-musleabihf \
+        riscv64-linux-musl \
+        mips-linux-musl \
+        mipsel-linux-musl \
+        powerpc64-linux-musl \
+        powerpc64le-linux-musl \
+        s390x-linux-musl \
     ; do \
-    curl -sSL https://musl.cc/${target}-cross.tgz | tar -xz -C /opt/musl --strip-components=1; \
-    done
+        curl -fSL "https://musl.cc/${target}-cross.tgz" -o "/tmp/${target}.tgz" && \
+        tar -xf "/tmp/${target}.tgz" -C /opt/musl --strip-components=1 && \
+        rm "/tmp/${target}.tgz"; \
+    done && \
+    test -x /opt/musl/bin/x86_64-linux-musl-gcc && \
+    test -f /opt/musl/x86_64-linux-musl/lib/crt1.o
 
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
