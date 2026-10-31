@@ -27,7 +27,7 @@ jobs:
       - name: Install musl cross toolchains
         run: |
           set -e
-          mkdir -p /opt/musl
+          mkdir -p /opt/musl /opt/musl/.dl
           for target in \
               x86_64-linux-musl \
               i686-linux-musl \
@@ -41,10 +41,12 @@ jobs:
               powerpc64le-linux-musl \
               s390x-linux-musl \
           ; do \
-              curl -fSL "https://musl.cc/${target}-cross.tgz" -o "/tmp/${target}.tgz" && \
-              tar -xf "/tmp/${target}.tgz" -C /opt/musl --strip-components=1 && \
-              rm "/tmp/${target}.tgz"; \
-          done
+              curl --retry 3 --retry-all-errors --retry-delay 2 -fSL \
+                "https://musl.cc/${target}-cross.tgz" -o "/opt/musl/.dl/${target}.tgz" && \
+              tar -xf "/opt/musl/.dl/${target}.tgz" -C /opt/musl --strip-components=1 && \
+              rm "/opt/musl/.dl/${target}.tgz"; \
+          done && \
+          rmdir /opt/musl/.dl && \
           test -x /opt/musl/bin/x86_64-linux-musl-gcc && \
           test -f /opt/musl/x86_64-linux-musl/lib/crt1.o
 
