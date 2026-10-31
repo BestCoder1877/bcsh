@@ -5,20 +5,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
-    file \
-    git \
     ca-certificates \
-    python3 \
-    cmake \
-    wget \
-    clang \
-    nodejs \
-    npm \
-    llvm \
-    pkg-config \
-    dpkg-dev \
+    git \
     xz-utils \
-    binutils \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://go.dev/dl/go1.27.3.linux-amd64.tar.gz | tar -C /usr/local -xz && \
@@ -78,21 +67,14 @@ COPY . .
 RUN ./build.sh && ./installer/build.sh
 
 ARG GH_TOKEN=
-ARG PUBLISH_RELEASE=false
-ENV GH_TOKEN=$GH_TOKEN
-ENV PUBLISH_RELEASE=$PUBLISH_RELEASE
 
-RUN if [ "$PUBLISH_RELEASE" = "true" ] && [ -n "$GH_TOKEN" ]; then \
-      TAG=$(git tag --points-at HEAD 2>/dev/null | head -n1); \
-      if [ -z "$TAG" ]; then \
-        echo "No tag points at HEAD; skipping release publish."; \
-      elif gh release view "$TAG" >/dev/null 2>&1; then \
-        echo "Release $TAG exists; uploading assets."; \
-        gh release upload "$TAG" output/bcsh-* installer/output/main-* --clobber; \
-      else \
-        echo "Creating release $TAG."; \
-        gh release create "$TAG" output/bcsh-* installer/output/main-* --generate-release-notes; \
-      fi; \
+RUN TAG=$(git tag --points-at HEAD 2>/dev/null | head -n1); \
+    if [ -z "$TAG" ]; then \
+      echo "No tag points at HEAD; skipping release publish."; \
+    elif gh release view "$TAG" >/dev/null 2>&1; then \
+      echo "Release $TAG exists; uploading assets."; \
+      gh release upload "$TAG" output/bcsh-* installer/output/main-* --clobber; \
     else \
-      echo "PUBLISH_RELEASE != true or GH_TOKEN empty; skipping release publish."; \
+      echo "Creating release $TAG."; \
+      gh release create "$TAG" output/bcsh-* installer/output/main-* --generate-release-notes; \
     fi
