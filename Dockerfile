@@ -52,7 +52,7 @@ RUN for cc in /opt/musl/bin/*-gcc; do \
     /opt/musl/bin/x86_64-linux-musl-gcc -c /tmp/crttest.c -o /tmp/crttest.o && \
     /opt/musl/bin/x86_64-linux-musl-gcc -static -nostartfiles -nodefaultlibs \
         crt1.o crti.o crtbegin.o /tmp/crttest.o \
-        -Wl,-Bstatic -lc -Wl,-Bdynamic \
+        -Wl,-Bstatic -lunwind -lc -Wl,-Bdynamic \
         crtend.o crtn.o -o /tmp/crttest && \
     test -x /tmp/crttest
 
