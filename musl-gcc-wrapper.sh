@@ -14,8 +14,6 @@ for arg in "$@"; do
         crtn.o) arg=$crtn ;;
         crtbegin.o|crtbeginS.o) arg=$crtbegin ;;
         crtend.o|crtendS.o) arg=$crtend ;;
-        -lunwind) arg=-lgcc_eh ;;
-        -Wl,-lunwind) arg=-Wl,-lgcc_eh ;;
     esac
     printf '%s\n' "$arg" >> "$tmp"
 done
