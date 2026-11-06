@@ -88,20 +88,16 @@ COPY . .
 
 RUN ./build.sh && ./installer/build.sh
 
-ARG RELEASE_TAG=
-ARG GH_REPO=bestCoder1877/bcsh
-
 RUN --mount=type=secret,id=github_token,required=false \
     set -eu; \
     for artifact in output/bcsh-* installer/output/main-*; do \
       test -f "$artifact" && test -x "$artifact"; \
     done; \
-    if [ -n "$RELEASE_TAG" ] && [ -r /run/secrets/github_token ]; then \
+    RELEASE_VERSION="$(awk -F '"' '$1 ~ /^[[:space:]]*version[[:space:]]*=/ {print $2; exit}' Cargo.toml)"; \
+    test -n "$RELEASE_VERSION"; \
+    RELEASE_TAG="v$RELEASE_VERSION-$(date -u +%Y%m%d%H%M%S)"; \
+    if [ -r /run/secrets/github_token ]; then \
       export GH_TOKEN="$(cat /run/secrets/github_token)"; \
-      if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then \
-        gh release upload "$RELEASE_TAG" output/bcsh-* installer/output/main-* --repo "$GH_REPO" --clobber; \
-      else \
-        gh release create "$RELEASE_TAG" output/bcsh-* installer/output/main-* \
-          --repo "$GH_REPO" --generate-release-notes; \
-      fi; \
+      gh release create "$RELEASE_TAG" output/bcsh-* installer/output/main-* \
+        --repo "bestCoder1877/bcsh" --generate-release-notes; \
     fi
