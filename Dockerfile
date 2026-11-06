@@ -75,8 +75,21 @@ RUN for cc in /opt/musl/bin/*-gcc; do \
         crtend.o crtn.o -o /tmp/crttest && \
     test -x /tmp/crttest
 
-RUN curl --fail --show-error --location --retry 5 --retry-all-errors \
-    https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+COPY musl-gcc-wrapper.sh /opt/musl/bin/musl-gcc-wrapper.sh
+RUN for cc in /opt/musl/bin/*-gcc; do \
+        cp "$cc" "${cc}-real"; \
+        cp /opt/musl/bin/musl-gcc-wrapper.sh "$cc"; \
+        chmod +x "$cc"; \
+    done && \
+    printf 'int main(){return 0;}\n' > /tmp/crttest.c && \
+    /opt/musl/bin/x86_64-linux-musl-gcc -c /tmp/crttest.c -o /tmp/crttest.o && \
+    /opt/musl/bin/x86_64-linux-musl-gcc -static -nostartfiles -nodefaultlibs \
+        crt1.o crti.o crtbegin.o /tmp/crttest.o \
+        -Wl,-Bstatic -lc -Wl,-Bdynamic \
+        crtend.o crtn.o -o /tmp/crttest && \
+    test -x /tmp/crttest
+
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
     | tee /etc/apt/sources.list.d/github-cli.list \
