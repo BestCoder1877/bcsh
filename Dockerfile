@@ -99,5 +99,5 @@ RUN --mount=type=secret,id=github_token,required=false \
     if [ -r /run/secrets/github_token ]; then \
       export GH_TOKEN="$(cat /run/secrets/github_token)"; \
       gh release create "$RELEASE_TAG" output/bcsh-* installer/output/main-* \
-        --repo "bestCoder1877/bcsh" --generate-release-notes; \
+        --repo "bestCoder1877/bcsh" --generate-notes; \
     fi
