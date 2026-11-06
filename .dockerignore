@@ -1,0 +1,13 @@
+.git
+.dockerignore
+.direnv
+target
+output
+build.log
+installer/output
+installer/bcsh-installer
+installer/installer-bin
+installer/main
+*.key
+*.pem
+*.secret
