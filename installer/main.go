@@ -152,7 +152,7 @@ func (m model) install() {
 	case "arm64":
 		binary = "bcsh-arm64"
 	case "arm":
-		binary = "bcsh-armhf"
+		binary = "bcsh-armv7hf"
 	case "386":
 		binary = "bcsh-i386"
 	case "mips":
