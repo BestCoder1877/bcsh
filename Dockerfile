@@ -19,11 +19,11 @@ RUN curl --fail --show-error --location --retry 5 --retry-all-errors \
 
 RUN curl --proto '=https' --tlsv1.2 --fail --show-error --location \
     --retry 5 --retry-all-errors https://sh.rustup.rs | \
-    sh -s -- -y --default-toolchain nightly --profile minimal
+    sh -s -- -y --default-toolchain nightly-2026-10-28 --profile minimal
 
 ENV PATH="/root/.cargo/bin:/opt/musl/bin:$PATH"
 
-RUN rustup component add rust-src --toolchain nightly
+RUN rustup component add rust-src --toolchain nightly-2026-10-28
 
 RUN set -e; mkdir -p /opt/musl; \
     for target in \
