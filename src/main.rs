@@ -674,6 +674,17 @@ fn swap_alias(command: String) -> bool {
     false
 }
 
+fn where_command(command: String){
+    let path = std::env::split_paths(&std::env::var_os("PATH").unwrap())
+    .map(|p| p.join(command.clone()))
+    .find(|p| p.is_file());
+    if path.is_none() {
+        print!("No Path Found\r\n");
+        return;
+    }
+    print!("{}\r\n", path.unwrap().display());
+}
+
 fn main() {
     unsafe {
         signal(SIGINT, SIG_IGN);
@@ -762,12 +773,21 @@ fn main() {
         } else if input.starts_with("pwd") {
             pwd();
         } else if input.starts_with("envset") {
-            let dir = &input[6..];
+            let dir = &input[7..];
             if dir.is_empty() {
                 print!("Please specify an argument\r\n");
                 continue;
             } else {
                 envset(&dir);
+                println!("\r\n");
+            }
+        } else if input.starts_with("where") {
+            let dir = &input[6..];
+            if dir.is_empty() {
+                print!("Please specify an argument\r\n");
+                continue;
+            } else {
+                where_command(dir.to_string());
                 println!("\r\n");
             }
         } else if input.starts_with("cat") {

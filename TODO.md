@@ -13,5 +13,5 @@
 - [ ] **`export` Builtin**: Set environment variables for child processes.
 - [x] **`envset`/`envrm`/`envedit` Builtins**
 - [ ] **`pathset`/`pathrm`/`pathedit` Builtins** 
-- [ ] **`where`**: Locate a command in `$PATH`.
+- [x] **`where`**: Locate a command in `$PATH`.
 - [x] **`cd ..`**: Navigate up one directory level.
